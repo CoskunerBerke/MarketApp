@@ -1,0 +1,13 @@
+{
+  "name": "market-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
