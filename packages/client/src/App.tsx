@@ -56,7 +56,7 @@ const App: React.FC = () => {
             <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Market<span className="text-primary">App</span></span>
+            <span className="text-xl font-bold tracking-tight">Market<span className="text-primary">App Online</span></span>
           </div>
 
           <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
