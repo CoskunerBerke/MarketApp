@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Heart, Menu, X, ArrowRight, Tag, Clock } from 'lucide-react';
 import type { Product, Market } from './types';
 
+// API URL configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const App: React.FC = () => {
