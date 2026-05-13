@@ -43,7 +43,7 @@ const Dashboard = () => {
         api.get('/products')
       ]);
       
-      setProducts(productsRes.data.slice(0, 5)); // Last 5
+      setProducts(productsRes.data); // Show all
       setStats({
         markets: marketsRes.data.length,
         products: productsRes.data.length,
