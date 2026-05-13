@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Store, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './index.css';

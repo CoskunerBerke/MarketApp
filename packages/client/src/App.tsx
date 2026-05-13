@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Search, Heart, Menu, X, ArrowRight, Tag, Clock } from 'lucide-react';
+import { Search, Heart, ArrowRight, Clock } from 'lucide-react';
 import './index.css';
 
 // API URL configuration
@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
 
   useEffect(() => {
     fetchProducts();
