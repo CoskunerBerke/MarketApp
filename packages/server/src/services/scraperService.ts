@@ -34,7 +34,7 @@ export const scrapeSpecificMarket = async (marketName: string) => {
     let market = await Market.findOne({ name: marketName });
     if (!market) return;
 
-    await Product.deleteMany({ marketId: market._id });
+    await Product.deleteMany({}); // Clear everything for a fresh BİM start as requested
     let gida = await Category.findOne({ slug: 'gida' });
 
     if (marketName === 'BİM') {
@@ -113,34 +113,7 @@ export const scrapeSpecificMarket = async (marketName: string) => {
       } catch (err) { console.error('BİM fail:', err); }
     }
 
-    // High-Quality Manual Update for blocked markets
-    const currentData: any = {
-      'A101': [
-        { name: 'Sütaş Tam Yağlı Kaşar 500g', price: 165.00, oldPrice: 195.00, img: 'https://ayb.akinoncdn.com/products/2021/01/21/54955/f9919f91-81f9-4b67-8c88-a764d84f29a0_size780x780_quality60_cropCenter.jpg', url: 'https://www.a101.com.tr/market/sutas-kasar-peyniri-500-g/' },
-        { name: 'Yudum Ayçiçek Yağı 5L', price: 219.00, oldPrice: 249.00, img: 'https://ayb.akinoncdn.com/products/2020/11/17/32415/79a3b680-3693-4e4f-b64a-25c786a51d95.jpg', url: 'https://www.a101.com.tr/arama?q=yudum' },
-        { name: 'Doğuş Filiz Çay 1 Kg', price: 159.00, oldPrice: 179.00, img: 'https://ayb.akinoncdn.com/products/2020/01/21/28059/89fdf230-0ebc-4cf8-a9d5-75e11a37c3df_size780x780_quality60_cropCenter.jpg', url: 'https://www.a101.com.tr/arama?q=dogus+cay' }
-      ],
-      'Migros': [
-        { name: 'Nutella 750g', price: 169.90, oldPrice: 189.90, img: 'https://migros-dali-storage-prod.global.ssl.fastly.net/sanalmarket/product/07050011/07050011-5a0d3b.jpg', url: 'https://www.migros.com.tr/arama?q=nutella' },
-        { name: 'Solo Tuvalet Kağıdı 32li', price: 229.90, oldPrice: 289.90, img: 'https://migros-dali-storage-prod.global.ssl.fastly.net/sanalmarket/product/30300123/30300123-5a0d3b.jpg', url: 'https://www.migros.com.tr/arama?q=solo' },
-        { name: 'Sütaş Süt 1L', price: 34.50, oldPrice: 39.90, img: 'https://migros-dali-storage-prod.global.ssl.fastly.net/sanalmarket/product/11012017/11012017-f58c73.jpg', url: 'https://www.migros.com.tr/arama?q=sutas+sut' }
-      ],
-      'ŞOK': [
-        { name: 'İçim Kaşar Peyniri 600g', price: 155.00, oldPrice: 185.00, img: 'https://cdns.sokmarket.com.tr/mm_images/products/600x600/12345_1.jpg', url: 'https://www.sokmarket.com.tr/arama?q=kasar' },
-        { name: 'Finish Quantum 80li', price: 389.00, oldPrice: 450.00, img: 'https://cdns.sokmarket.com.tr/mm_images/products/600x600/67890_1.jpg', url: 'https://www.sokmarket.com.tr/arama?q=finish' }
-      ],
-      'Çağdaş': [
-        { name: 'Torku Şeker 5kg', price: 175.00, oldPrice: 195.00, img: 'https://cdn.getir.com/product/5f2a89345718a362a26569ec_tr_1603212456423.jpeg', url: 'https://cagdasmarketler.com.tr/' }
-      ]
-    };
-
-    const products = currentData[marketName] || [];
-    for (const p of products) {
-      await Product.create({ 
-        ...p, marketId: market._id, imageUrl: p.img, sourceUrl: getSafeUrl(p.url), isScraped: true,
-        categoryId: gida?._id, campaignStartDate: new Date(), campaignEndDate: new Date(Date.now() + 86400000 * 7)
-      });
-    }
+    // Removed other markets to focus only on BİM
   } catch (error) { console.error(`Error in ${marketName}:`, error); }
 };
 
