@@ -5,13 +5,13 @@ dotenv.config();
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/market_app');
+    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/market_app';
+    const conn = await mongoose.connect(uri);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
+    console.error('MongoDB connection error:');
     if (error instanceof Error) {
-      console.error(`Error: ${error.message}`);
-    } else {
-      console.error('An unknown error occurred during MongoDB connection');
+      console.error(error.message);
     }
     process.exit(1);
   }
