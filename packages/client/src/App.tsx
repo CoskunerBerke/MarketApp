@@ -8,38 +8,24 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://market-backend-ooz
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMarket, setSelectedMarket] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  useEffect(() => {
     fetchProducts();
-  }, [selectedMarket, searchTerm]);
-
-  const fetchInitialData = async () => {
-    try {
-      const marketsRes = await axios.get(`${API_BASE_URL}/markets`);
-      setMarkets(marketsRes.data);
-    } catch (error) {
-      console.error('Error fetching initial data:', error);
-    }
-  };
+  }, [searchTerm]);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const params: any = {};
-      if (selectedMarket) params.marketId = selectedMarket;
       if (searchTerm) params.search = searchTerm;
       
       const res = await axios.get(`${API_BASE_URL}/products`, { params });
-      setProducts(res.data);
+      // Sort products to show newest/highest discount first
+      const sorted = res.data.sort((a: any, b: any) => (b.discountRate || 0) - (a.discountRate || 0));
+      setProducts(sorted);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -53,17 +39,17 @@ const App: React.FC = () => {
       <nav className="glass-nav fixed top-0 left-0 right-0 z-50 py-4">
         <div className="container flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white p-1">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/Bim_logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Market<span className="text-primary">App Online</span></span>
+            <span className="text-xl font-bold tracking-tight">Market<span className="text-primary">Fırsatları</span></span>
           </div>
 
           <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
             <input 
               type="text" 
-              placeholder="Ürün veya market ara..." 
+              placeholder="BİM ürünlerinde ara..." 
               className="w-full pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -73,7 +59,7 @@ const App: React.FC = () => {
           <div className="hidden md:flex items-center gap-6">
             <button className="text-text-muted hover:text-white flex items-center gap-2">
               <Heart className="w-5 h-5" />
-              Favorilerim
+              Favoriler
             </button>
             <button className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-xl font-medium">
               Giriş Yap
@@ -89,96 +75,89 @@ const App: React.FC = () => {
       <main className="pt-28 pb-20">
         <div className="container">
           {/* Hero Section */}
-          <section className="relative rounded-3xl overflow-hidden mb-12 animate-fade-in" style={{ height: '400px' }}>
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent z-10"></div>
+          <section className="relative rounded-3xl overflow-hidden mb-16 animate-fade-in" style={{ height: '450px' }}>
+            <div className="absolute inset-0 bg-gradient-to-r from-bg-color via-bg-color/60 to-transparent z-10"></div>
             <img 
-              src="/hero.png" 
+              src="https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=2000&auto=format&fit=crop" 
               alt="Hero" 
-              className="absolute inset-0 w-full h-full object-cover opacity-60"
+              className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="relative z-20 h-full flex flex-col justify-center px-12 max-w-2xl">
-              <span className="bg-accent text-white px-4 py-1 rounded-full text-sm font-bold w-fit mb-4">HAFTALIK FIRSATLAR</span>
-              <h1 className="text-5xl font-bold mb-6 leading-tight">En Uygun Fiyatlar, <br />Artık Cebinizde.</h1>
-              <p className="text-lg text-text-muted mb-8">BİM, A101, ŞOK ve Migros indirimlerini anlık olarak takip edin, tasarruf etmeye bugün başlayın.</p>
+              <div className="flex items-center gap-3 mb-6">
+                 <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/Bim_logo.png" alt="Bim" className="h-8 brightness-0 invert" />
+                 <span className="bg-white/10 backdrop-blur-md text-white px-4 py-1 rounded-full text-xs font-bold">GÜNCEL İNDİRİMLER</span>
+              </div>
+              <h1 className="text-6xl font-bold mb-6 leading-tight tracking-tight">BİM Fırsatlarını <br />Kaçırmayın.</h1>
+              <p className="text-xl text-text-muted mb-10 leading-relaxed">05 Mayıs - 02 Haziran ve 09-15 Mayıs tarihlerine özel tüm indirimli ürünleri anlık olarak takip edin.</p>
               <div className="flex gap-4">
-                <button className="bg-white text-bg-color px-8 py-3 rounded-xl font-bold flex items-center gap-2">
-                  İndirimleri Gör <ArrowRight className="w-5 h-5" />
+                <button className="bg-primary hover:bg-primary-hover text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2 text-lg shadow-lg shadow-primary/20 transition-all hover:scale-105">
+                  Ürünleri İncele <ArrowRight className="w-6 h-6" />
                 </button>
               </div>
             </div>
           </section>
 
-          {/* Market Selection */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Marketlere Göre Göz At</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {markets.map((market) => (
-                <button 
-                  key={market._id}
-                  onClick={() => setSelectedMarket(selectedMarket === market._id ? null : market._id)}
-                  className={`glass p-6 flex flex-col items-center gap-4 transition-all hover:scale-[1.02] ${selectedMarket === market._id ? 'border-primary ring-1 ring-primary' : ''}`}
-                >
-                  <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center p-2">
-                    {market.logoUrl ? (
-                      <img src={market.logoUrl} alt={market.name} className="w-full h-full object-contain" />
-                    ) : (
-                      <span className="font-bold text-2xl">{market.name[0]}</span>
-                    )}
-                  </div>
-                  <span className="font-semibold">{market.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Product Grid */}
           <div>
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold">Öne Çıkan İndirimler</h2>
-              <div className="flex items-center gap-2 text-text-muted">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">BİM İndirim Kataloğu</h2>
+                <p className="text-text-muted">Şu an aktif olan tüm kampanyalı ürünler</p>
+              </div>
+              <div className="flex items-center gap-2 text-text-muted bg-surface-color px-4 py-2 rounded-xl border border-surface-border">
                 <Clock className="w-4 h-4" />
-                <span className="text-sm">Son güncelleme: 5 dakika önce</span>
+                <span className="text-sm">Otomatik Güncelleniyor</span>
               </div>
             </div>
 
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <div key={i} className="glass h-80 animate-pulse"></div>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                  <div key={i} className="glass h-96 animate-pulse"></div>
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                 {products.map((product) => (
-                  <div key={product._id} className="glass group overflow-hidden transition-all hover:translate-y-[-4px]">
-                    <div className="relative aspect-square bg-white/5 p-4 flex items-center justify-center">
+                  <div key={product._id} className="glass group overflow-hidden transition-all hover:translate-y-[-8px] hover:border-primary/50">
+                    <div className="relative aspect-square bg-white p-6 flex items-center justify-center m-3 rounded-2xl">
                       <img 
                         src={product.imageUrl || 'https://via.placeholder.com/300'} 
                         alt={product.name} 
-                        className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110"
+                        className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110"
                       />
-                      {product.discountRate && (
-                        <div className="absolute top-3 left-3 bg-accent text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-                          <Tag className="w-3 h-3" />
+                      {product.discountRate > 0 && (
+                        <div className="absolute top-0 left-0 bg-accent text-white px-3 py-1.5 rounded-br-2xl rounded-tl-xl text-sm font-bold flex items-center gap-1 shadow-lg">
+                          <Tag className="w-4 h-4" />
                           %{product.discountRate}
                         </div>
                       )}
-                      <button className="absolute top-3 right-3 p-2 rounded-full bg-black/20 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Heart className="w-4 h-4" />
+                      <button className="absolute bottom-3 right-3 p-3 rounded-xl bg-bg-color/80 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all hover:bg-primary">
+                        <Heart className="w-5 h-5 text-white" />
                       </button>
                     </div>
-                    <div className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                         <span className="text-[10px] uppercase font-bold text-primary tracking-wider">
-                           {typeof product.marketId === 'object' ? product.marketId.name : 'Market'}
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 mb-3">
+                         <span className="text-[11px] uppercase font-bold text-primary tracking-widest bg-primary/10 px-2 py-0.5 rounded">
+                           BİM AKTÜEL
                          </span>
                       </div>
-                      <h3 className="font-medium text-sm line-clamp-2 mb-4 h-10">{product.name}</h3>
-                      <div className="flex items-end gap-3">
-                        <span className="text-xl font-bold text-white">₺{product.price.toFixed(2)}</span>
-                        {product.oldPrice && (
-                          <span className="text-sm text-text-muted line-through mb-1">₺{product.oldPrice.toFixed(2)}</span>
-                        )}
+                      <h3 className="font-semibold text-base line-clamp-2 mb-6 h-12 leading-snug group-hover:text-primary transition-colors">{product.name}</h3>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          {product.oldPrice && product.oldPrice > product.price && (
+                            <span className="text-sm text-text-muted line-through mb-1">₺{product.oldPrice.toFixed(2)}</span>
+                          )}
+                          <span className="text-2xl font-bold text-white tracking-tight">₺{product.price.toFixed(2)}</span>
+                        </div>
+                        <a 
+                          href={product.sourceUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 rounded-full bg-surface-color border border-surface-border flex items-center justify-center hover:bg-primary hover:border-primary transition-all"
+                        >
+                          <ArrowRight className="w-5 h-5" />
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -187,47 +166,57 @@ const App: React.FC = () => {
             )}
             
             {!loading && products.length === 0 && (
-              <div className="text-center py-20">
-                <p className="text-text-muted">Aradığınız kriterlere uygun ürün bulunamadı.</p>
+              <div className="text-center py-32 glass">
+                <div className="w-20 h-20 bg-surface-color rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Search className="w-10 h-10 text-text-muted" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Ürün Bulunamadı</h3>
+                <p className="text-text-muted">Şu an için BİM sisteminde aktif kampanya bulunmuyor.</p>
               </div>
             )}
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-surface-border py-12">
+      <footer className="border-t border-surface-border pt-20 pb-10 bg-bg-color">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
             <div className="col-span-2">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center">
-                  <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center bg-white p-2">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/Bim_logo.png" alt="Logo" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-lg font-bold tracking-tight">Market<span className="text-primary">App</span></span>
+                <span className="text-2xl font-bold tracking-tight">Market<span className="text-primary">Fırsatları</span></span>
               </div>
-              <p className="text-text-muted max-w-sm">
-                Türkiye'nin en büyük marketlerinin indirimlerini tek bir noktadan takip etmenizi sağlayan modern platform.
+              <p className="text-text-muted text-lg max-w-md leading-relaxed">
+                BİM'in tüm aktüel ve indirimli ürünlerini tek bir noktadan takip etmenizi sağlayan en modern platform. En uygun fiyatlar, her zaman cebinizde.
               </p>
             </div>
             <div>
-              <h4 className="font-bold mb-6">Bağlantılar</h4>
+              <h4 className="font-bold text-lg mb-8">Kurumsal</h4>
               <ul className="space-y-4 text-text-muted">
-                <li className="hover:text-white cursor-pointer transition-colors">Ana Sayfa</li>
-                <li className="hover:text-white cursor-pointer transition-colors">Hakkımızda</li>
-                <li className="hover:text-white cursor-pointer transition-colors">İletişim</li>
+                <li className="hover:text-primary cursor-pointer transition-colors">Ana Sayfa</li>
+                <li className="hover:text-primary cursor-pointer transition-colors">Kampanyalar</li>
+                <li className="hover:text-primary cursor-pointer transition-colors">Hakkımızda</li>
+                <li className="hover:text-primary cursor-pointer transition-colors">İletişim</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold mb-6">Legal</h4>
-              <ul className="space-y-4 text-text-muted">
-                <li className="hover:text-white cursor-pointer transition-colors">Kullanım Koşulları</li>
-                <li className="hover:text-white cursor-pointer transition-colors">Gizlilik Politikası</li>
-                <li className="hover:text-white cursor-pointer transition-colors">Çerez Politikası</li>
-              </ul>
+              <h4 className="font-bold text-lg mb-8">Bizi Takip Edin</h4>
+              <div className="flex gap-4">
+                <div className="w-12 h-12 rounded-xl bg-surface-color border border-surface-border flex items-center justify-center hover:bg-primary transition-all cursor-pointer">
+                  <Heart className="w-6 h-6" />
+                </div>
+                {/* Social icons would go here */}
+              </div>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-surface-border text-center text-text-muted text-sm">
-            © 2026 MarketApp. Tüm hakları saklıdır.
+          <div className="pt-8 border-t border-surface-border flex flex-col md:flex-row justify-between items-center gap-4 text-text-muted text-sm">
+            <span>© 2026 MarketFırsatları. Tüm hakları saklıdır.</span>
+            <div className="flex gap-8">
+              <span className="hover:text-white cursor-pointer transition-colors">Kullanım Koşulları</span>
+              <span className="hover:text-white cursor-pointer transition-colors">Gizlilik Politikası</span>
+            </div>
           </div>
         </div>
       </footer>

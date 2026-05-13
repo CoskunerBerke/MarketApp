@@ -34,31 +34,62 @@ const Sidebar = () => {
 const Dashboard = () => {
   const [stats, setStats] = useState({ markets: 0, products: 0, discounts: 0 });
   const [products, setProducts] = useState<any[]>([]);
+  const [isScraping, setIsScraping] = useState(false);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [marketsRes, productsRes] = await Promise.all([
+        api.get('/markets'),
+        api.get('/products')
+      ]);
+      
+      setProducts(productsRes.data.slice(0, 5)); // Last 5
+      setStats({
+        markets: marketsRes.data.length,
+        products: productsRes.data.length,
+        discounts: productsRes.data.filter((p: any) => p.discountRate > 0).length
+      });
+    } catch (error) {
+      console.error("Dashboard veri çekme hatası:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [marketsRes, productsRes] = await Promise.all([
-          api.get('/markets'),
-          api.get('/products')
-        ]);
-        
-        setProducts(productsRes.data.slice(0, 5)); // Last 5
-        setStats({
-          markets: marketsRes.data.length,
-          products: productsRes.data.length,
-          discounts: productsRes.data.filter((p: any) => p.discountRate > 0).length
-        });
-      } catch (error) {
-        console.error("Dashboard veri çekme hatası:", error);
-      }
-    };
     fetchDashboardData();
   }, []);
 
+  const handleScrape = async () => {
+    setIsScraping(true);
+    try {
+      await api.post('/scrape/a101');
+      alert('BİM verilerini çekme işlemi başlatıldı! Birkaç dakika içinde ürünler listelenecektir.');
+      setTimeout(fetchDashboardData, 5000); // Refresh after 5s
+    } catch (error) {
+      alert('Hata oluştu!');
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
   return (
     <div>
-      <h2 style={{ marginBottom: '1.5rem' }}>Dashboard Özeti</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2>Dashboard Özeti</h2>
+        <button 
+          onClick={handleScrape}
+          disabled={isScraping}
+          style={{ 
+            background: 'var(--primary-blue)', 
+            color: 'white', 
+            padding: '10px 20px', 
+            borderRadius: '8px',
+            opacity: isScraping ? 0.7 : 1,
+            cursor: isScraping ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {isScraping ? 'Veriler Çekiliyor...' : 'BİM Verilerini Güncelle'}
+        </button>
+      </div>
       
       <div className="dashboard-grid">
         <div className="stat-card">
