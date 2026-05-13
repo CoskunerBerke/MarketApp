@@ -4,7 +4,7 @@ import { Search, Heart, Menu, X, ArrowRight, Tag, Clock } from 'lucide-react';
 import type { Product, Market } from './types';
 
 // API URL configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://market-backend-oozv.onrender.com/api';
 
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);

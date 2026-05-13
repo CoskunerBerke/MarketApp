@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './index.css';
 
-const api = axios.create({ baseURL: 'http://localhost:5000/api' });
+const api = axios.create({ baseURL: 'https://market-backend-oozv.onrender.com/api' });
 
 const Sidebar = () => {
   const location = useLocation();
