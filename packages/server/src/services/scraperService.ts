@@ -13,6 +13,9 @@ const initMarketsAndCategories = async () => {
     await Market.findOneAndUpdate({ name: m.name }, { $set: m }, { upsert: true });
   }
 
+  // Delete any market that is NOT BİM to satisfy user's request for only BİM
+  await Market.deleteMany({ name: { $ne: 'BİM' } });
+
   const categories = [
     { name: 'Gıda', slug: 'gida' },
     { name: 'Temizlik', slug: 'temizlik' },
