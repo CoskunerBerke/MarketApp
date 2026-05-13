@@ -66,7 +66,8 @@ export const scrapeSpecificMarket = async (marketName: string) => {
           });
           const $ = cheerio.load(response.data);
           
-          $('.product').each(async (_, el) => {
+          const products = $('.product').toArray();
+          for (const el of products) {
             const subTitle = $(el).find('.subTitle').text().trim();
             const title = $(el).find('.title').text().trim();
             const details = $(el).find('.gramajadet').text().trim();
@@ -83,7 +84,7 @@ export const scrapeSpecificMarket = async (marketName: string) => {
             const discountRate = discountText ? parseInt(discountText) : (oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
 
             const imgPath = $(el).find('.image img').attr('src') || $(el).find('img').attr('src');
-            if (!imgPath) return;
+            if (!imgPath) continue;
             const imageUrl = imgPath.startsWith('http') ? imgPath : 'https://www.bim.com.tr' + imgPath;
             
             const originalSourceUrl = $(el).find('a').attr('href');
@@ -103,14 +104,13 @@ export const scrapeSpecificMarket = async (marketName: string) => {
                     sourceUrl: getSafeUrl(fullSourceUrl), 
                     isScraped: true, 
                     categoryId: gida?._id,
-                    campaignStartDate: new Date(), 
-                    campaignEndDate: new Date(Date.now() + 86400000 * 7)
+                    updatedAt: new Date()
                   }
                 },
                 { upsert: true }
               );
             }
-          });
+          }
         }
         return;
       } catch (err) { console.error('BİM fail:', err); }
