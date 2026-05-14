@@ -118,31 +118,36 @@ export const scrapeSpecificMarket = async (marketName: string) => {
               const details = $(el).find('.gramajadet').text().trim();
               const fullName = `${subTitle} ${title} ${details}`.trim();
               
-              // Helper to parse Turkish price format
-              const parsePrice = (text: string) => {
-                if (!text) return null;
-                // Replace comma with dot and remove all non-digits/non-dots
-                const normalized = text.replace(',', '.').replace(/[^\d.]/g, '');
-                const parts = normalized.split('.');
-                if (parts.length > 2) {
-                  // Had multiple dots (thousand separators). Combine all but last.
-                  const decimalPart = parts.pop();
-                  const wholePart = parts.join('');
-                  return parseFloat(`${wholePart}.${decimalPart}`);
+              // Unified price parser for BİM's inconsistent HTML
+              const getBimPrice = (selector: string) => {
+                const $container = $(el).find(selector);
+                if ($container.length === 0) return null;
+
+                const wholeText = $container.find('.text.quantify').text().trim();
+                const decimalText = $container.find('.kusurArea .number').text().trim();
+
+                if (decimalText) {
+                  // Case 1: Split price (e.g., 48 in quantify, 50 in number)
+                  const w = wholeText.replace(/[^\d]/g, '');
+                  const d = decimalText.replace(/[^\d]/g, '');
+                  return parseFloat(`${w}.${d}`);
+                } else {
+                  // Case 2: Combined price (e.g., "54,00" in quantify)
+                  const normalized = wholeText.replace(',', '.').replace(/[^\d.]/g, '');
+                  const parts = normalized.split('.');
+                  if (parts.length > 2) {
+                    const d = parts.pop();
+                    const w = parts.join('');
+                    return parseFloat(`${w}.${d}`);
+                  }
+                  const val = parseFloat(normalized);
+                  return isNaN(val) ? null : val;
                 }
-                const val = parseFloat(normalized);
-                return isNaN(val) ? null : val;
               };
 
-              // BİM main price is split into quantify and number tags
-              const priceWholeRaw = $(el).find('.gButton.triangle .text.quantify').text().trim().replace(/[^\d]/g, '');
-              const priceDecimalRaw = $(el).find('.gButton.triangle .kusurArea .number').text().trim().replace(/[^\d]/g, '');
-              const price = priceWholeRaw ? parseFloat(`${priceWholeRaw}.${priceDecimalRaw || '00'}`) : null;
-
-              // Old price is usually a single string
-              const oldPriceText = $(el).find('.CountButton.strikethrough .text.quantify').text().trim();
-              const oldPrice = parsePrice(oldPriceText);
-
+              const price = getBimPrice('.gButton.triangle');
+              const oldPrice = getBimPrice('.CountButton.strikethrough');
+              
               const discountText = $(el).find('.DiscountButton').text().trim().replace('%', '').trim();
 
               if (price === null) continue;
