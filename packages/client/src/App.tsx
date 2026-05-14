@@ -267,13 +267,19 @@ function App() {
                     <div className="discount-badge">%{product.discountRate} İNDİRİM</div>
                     <button 
                       className={`fav-btn-elite ${favorites.includes(product._id) ? 'active' : ''}`}
-                      onClick={() => toggleFavorite(product._id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavorite(product._id);
+                      }}
                       style={{
                         position: 'absolute', top: '0.75rem', right: '0.75rem',
-                        background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.3)',
-                        border: 'none', borderRadius: '50%', width: '36px', height: '36px',
+                        background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.4)',
+                        border: 'none', borderRadius: '50%', width: '38px', height: '38px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', transition: 'all 0.3s ease', backdropFilter: 'blur(4px)'
+                        cursor: 'pointer', transition: 'all 0.3s ease', backdropFilter: 'blur(8px)',
+                        zIndex: 20,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                       }}
                     >
                       <Heart size={20} color="white" fill={favorites.includes(product._id) ? "white" : "none"} />
