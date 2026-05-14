@@ -69,13 +69,23 @@ function App() {
     try {
       const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
       const { data } = await api.post(endpoint, { email, password });
-      setUser(data.user);
-      setFavorites(data.user.favorites || []);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Backend returns fields directly (data._id, data.email, etc.)
+      const userData = {
+        id: data._id,
+        email: data.email,
+        role: data.role,
+        favorites: data.favorites || []
+      };
+      
+      setUser(userData);
+      setFavorites(userData.favorites);
+      localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', data.token);
       setShowAuthModal(false);
-    } catch (err) {
-      alert(authMode === 'login' ? 'Giriş başarısız!' : 'Kayıt başarısız!');
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || 'İşlem başarısız!';
+      alert(errorMsg);
     }
   };
 
