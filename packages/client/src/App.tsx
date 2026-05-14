@@ -200,12 +200,36 @@ function App() {
             <div className="product-grid">
               {filteredProducts.map((product, index) => (
                 <div key={product._id} className="product-card animate-up" style={{ animationDelay: `${index * 0.05}s`, position: 'relative' }}>
-                  <button className="fav-btn-elite" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(product._id); }}
-                    style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s ease', backdropFilter: 'blur(10px)', zIndex: 100, boxShadow: '0 8px 16px rgba(0,0,0,0.3)' }}
+                  <button 
+                    className="fav-btn-elite" 
+                    onClick={(e) => { 
+                      e.preventDefault(); 
+                      e.stopPropagation(); 
+                      toggleFavorite(product._id); 
+                    }}
+                    style={{ 
+                      position: 'absolute', 
+                      top: '1.25rem', 
+                      right: '1.25rem', 
+                      background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.6)', 
+                      border: 'none', 
+                      borderRadius: '50%', 
+                      width: '44px', 
+                      height: '44px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      cursor: 'pointer', 
+                      transition: 'all 0.3s ease', 
+                      backdropFilter: 'blur(10px)', 
+                      zIndex: 200, 
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                      padding: 0
+                    }}
                   >
-                    <Heart size={22} color="white" fill={favorites.includes(product._id) ? "white" : "none"} />
+                    <Heart size={24} color="white" fill={favorites.includes(product._id) ? "white" : "none"} />
                   </button>
-                  <div className="img-container" style={{ pointerEvents: 'none' }}>
+                  <div className="img-container">
                     <img src={product.imageUrl} alt={product.name} className="product-img" />
                     <div className="discount-badge">%{product.discountRate} İNDİRİM</div>
                   </div>
