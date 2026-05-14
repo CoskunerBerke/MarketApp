@@ -57,8 +57,21 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         const dateKeys: string[] = [];
         
         // 1. Headerdaki "Ürünler" menüsünden sadece "İNDİRİM" sütunundaki anahtarları topla
+        let indirimColIndex = -1;
+        $home('.aktuelsubmenu table tr').first().find('td, th').each((i, el) => {
+          const text = $home(el).text().toUpperCase();
+          if (text.includes('İNDİRİM') || text.includes('INDIRIM')) {
+            indirimColIndex = i;
+          }
+        });
+
+        // Eğer ilk satırda bulamazsak genel arama yap
+        if (indirimColIndex === -1) {
+          indirimColIndex = 1; // Fallback to 2nd column
+        }
+
         $home('.aktuelsubmenu table tr').each((_, tr) => {
-          const td = $home(tr).find('td').eq(1);
+          const td = $home(tr).find('td').eq(indirimColIndex);
           const links = td.find('a[href*="Bim_AktuelTarihKey="]');
           
           links.each((_, el) => {
@@ -69,19 +82,6 @@ export const scrapeSpecificMarket = async (marketName: string) => {
             }
           });
         });
-
-        // 2. Fallback
-        if (dateKeys.length === 0) {
-          const indirimIndex = $home('.tabArea .tabButtonArea .gButton').toArray().findIndex(el => $home(el).text().includes('İNDİRİM'));
-          const areaIndex = indirimIndex !== -1 ? (indirimIndex * 2) + 1 : 3;
-          $home(`.subButtonArea-${areaIndex} a[href*="Bim_AktuelTarihKey="]`).each((_, el) => {
-            const href = $home(el).attr('href');
-            const match = href?.match(/Bim_AktuelTarihKey=(\d+)/);
-            if (match && !dateKeys.includes(match[1])) {
-              dateKeys.push(match[1]);
-            }
-          });
-        }
 
         console.log(`BİM (Sadece İndirim): ${dateKeys.length} tarih anahtarı bulundu. İşlem başlıyor...`);
 
@@ -118,14 +118,18 @@ export const scrapeSpecificMarket = async (marketName: string) => {
               const details = $(el).find('.gramajadet').text().trim();
               const fullName = `${subTitle} ${title} ${details}`.trim();
               
-              // Prices
-              const oldPriceText = $(el).find('.CountButton.strikethrough .text.quantify').text().trim().replace(/\./g, '').replace(',', '.');
-              const priceWhole = $(el).find('.gButton.triangle .text.quantify').text().trim().replace(/\./g, '').replace(',', '');
-              const priceDecimal = $(el).find('.gButton.triangle .kusurArea .number').text().trim();
+              // Safer price parsing
+              const cleanNum = (t: string) => t.replace(/[^\d]/g, '');
+              
+              const oldPriceWhole = cleanNum($(el).find('.CountButton.strikethrough .text.quantify').text().trim());
+              const priceWhole = cleanNum($(el).find('.gButton.triangle .text.quantify').text().trim());
+              const priceDecimal = cleanNum($(el).find('.gButton.triangle .kusurArea .number').text().trim());
               const discountText = $(el).find('.DiscountButton').text().trim().replace('%', '').trim();
 
-              const price = parseFloat(`${priceWhole}.${priceDecimal}`);
-              const oldPrice = oldPriceText ? parseFloat(oldPriceText) : null;
+              if (!priceWhole) continue;
+
+              const price = parseFloat(`${priceWhole}.${priceDecimal || '00'}`);
+              const oldPrice = oldPriceWhole ? parseFloat(oldPriceWhole) : null;
               const discountRate = discountText ? parseInt(discountText) : (oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
 
               // Lazy loaded images use xsrc

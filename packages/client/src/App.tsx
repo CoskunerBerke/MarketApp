@@ -279,7 +279,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="card-info">
                   <div style={{ marginBottom: '0.5rem' }}>
-                    <span className="badge" style={{ fontSize: '0.65rem' }}>BİM Aktüel</span>
+                    <span className="badge" style={{ fontSize: '0.65rem' }}>BİM İndirim</span>
                   </div>
                   <h3 className="product-name">{product.name}</h3>
                   <div className="price-row">
