@@ -28,7 +28,7 @@ const initMarketsAndCategories = async () => {
 };
 
 const getSafeUrl = (targetUrl: string) => {
-  return `https://www.google.com/url?q=${encodeURIComponent(targetUrl)}`;
+  return targetUrl; // Google redirect kaldırıldı, temiz link kullanılıyor
 };
 
 let isScraping = false;
