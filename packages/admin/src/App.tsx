@@ -65,7 +65,7 @@ const Dashboard = () => {
   const handleScrape = async () => {
     setIsScraping(true);
     try {
-      await api.post('/scrape/a101');
+      await api.post('/scrape/bim');
       alert('BİM verilerini çekme işlemi başlatıldı! Birkaç dakika içinde ürünler listelenecektir.');
       setTimeout(fetchDashboardData, 5000); // Refresh after 5s
     } catch (error) {
