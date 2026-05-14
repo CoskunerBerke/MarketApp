@@ -118,18 +118,35 @@ export const scrapeSpecificMarket = async (marketName: string) => {
               const details = $(el).find('.gramajadet').text().trim();
               const fullName = `${subTitle} ${title} ${details}`.trim();
               
-              // Safer price parsing
-              const cleanNum = (t: string) => t.replace(/[^\d]/g, '');
-              
-              const oldPriceWhole = cleanNum($(el).find('.CountButton.strikethrough .text.quantify').text().trim());
-              const priceWhole = cleanNum($(el).find('.gButton.triangle .text.quantify').text().trim());
-              const priceDecimal = cleanNum($(el).find('.gButton.triangle .kusurArea .number').text().trim());
+              // Helper to parse Turkish price format
+              const parsePrice = (text: string) => {
+                if (!text) return null;
+                // Replace comma with dot and remove all non-digits/non-dots
+                const normalized = text.replace(',', '.').replace(/[^\d.]/g, '');
+                const parts = normalized.split('.');
+                if (parts.length > 2) {
+                  // Had multiple dots (thousand separators). Combine all but last.
+                  const decimalPart = parts.pop();
+                  const wholePart = parts.join('');
+                  return parseFloat(`${wholePart}.${decimalPart}`);
+                }
+                const val = parseFloat(normalized);
+                return isNaN(val) ? null : val;
+              };
+
+              // BİM main price is split into quantify and number tags
+              const priceWholeRaw = $(el).find('.gButton.triangle .text.quantify').text().trim().replace(/[^\d]/g, '');
+              const priceDecimalRaw = $(el).find('.gButton.triangle .kusurArea .number').text().trim().replace(/[^\d]/g, '');
+              const price = priceWholeRaw ? parseFloat(`${priceWholeRaw}.${priceDecimalRaw || '00'}`) : null;
+
+              // Old price is usually a single string
+              const oldPriceText = $(el).find('.CountButton.strikethrough .text.quantify').text().trim();
+              const oldPrice = parsePrice(oldPriceText);
+
               const discountText = $(el).find('.DiscountButton').text().trim().replace('%', '').trim();
 
-              if (!priceWhole) continue;
+              if (price === null) continue;
 
-              const price = parseFloat(`${priceWhole}.${priceDecimal || '00'}`);
-              const oldPrice = oldPriceWhole ? parseFloat(oldPriceWhole) : null;
               const discountRate = discountText ? parseInt(discountText) : (oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
 
               // Lazy loaded images use xsrc
