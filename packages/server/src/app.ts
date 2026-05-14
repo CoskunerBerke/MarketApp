@@ -45,6 +45,45 @@ app.post('/api/scrape/:market', async (req, res) => {
   }
 });
 
+app.post('/api/products/bulk', async (req, res) => {
+  try {
+    const { products, marketName } = req.body;
+    if (!products || !Array.isArray(products)) {
+      return res.status(400).json({ message: 'products array required' });
+    }
+    
+    const Market = (await import('./models/Market')).default;
+    const Product = (await import('./models/Product')).default;
+    const Category = (await import('./models/Category')).default;
+    
+    let market = await Market.findOne({ name: marketName });
+    if (!market) {
+      market = await Market.create({ name: marketName, logoUrl: '' });
+    }
+    let gida = await Category.findOne({ slug: 'gida' });
+    
+    const scrapeStartTime = new Date();
+    let count = 0;
+    
+    for (const p of products) {
+      await Product.findOneAndUpdate(
+        { name: p.name, marketId: market._id },
+        { $set: { ...p, marketId: market._id, categoryId: gida?._id, isScraped: true, updatedAt: new Date() } },
+        { upsert: true }
+      );
+      count++;
+    }
+    
+    if (count >= 5) {
+      await Product.deleteMany({ marketId: market._id, updatedAt: { $lt: scrapeStartTime } });
+    }
+    
+    res.json({ message: `${count} products saved for ${marketName}` });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/debug/sok', async (req, res) => {
   try {
     const axios = (await import('axios')).default;
