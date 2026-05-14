@@ -1,0 +1,13 @@
+{
+  "name": "market-admin-panel",
+  "framework": "vite",
+  "rootDirectory": "packages/admin",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
