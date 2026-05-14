@@ -74,9 +74,8 @@ const HomeScreen = ({ navigation }: any) => {
   const handleShare = async (product: any) => {
     try {
       await Share.share({
-        message: `${product.name} BİM'de sadece ₺${product.price.toFixed(2)}! Kaçırma! ${product.sourceUrl}`,
-        url: product.sourceUrl, // iOS için
-        title: product.name
+        message: product.sourceUrl,
+        url: product.sourceUrl,
       });
     } catch (error: any) {
       console.error('Paylaşım hatası:', error.message);
@@ -238,9 +237,8 @@ const ProductDetailScreen = ({ route }: any) => {
                 style={[styles.buyButton, { width: 60, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }]}
                 onPress={() => {
                   Share.share({
-                    message: `${product.name} BİM'de sadece ₺${product.price.toFixed(2)}! Kaçırma! ${product.sourceUrl}`,
+                    message: product.sourceUrl,
                     url: product.sourceUrl,
-                    title: product.name
                   });
                 }}
               >

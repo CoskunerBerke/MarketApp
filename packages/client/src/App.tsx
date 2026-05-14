@@ -116,18 +116,14 @@ function App() {
   };
 
   const handleShare = async (product: Product) => {
-    const shareData = {
-      title: product.name,
-      text: `${product.name} BİM'de sadece ₺${product.price.toFixed(2)}! Kaçırma!`,
-      url: product.sourceUrl,
-    };
-
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share({
+          url: product.sourceUrl,
+        });
       } else {
-        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-        alert('Paylaşım linki kopyalandı!');
+        await navigator.clipboard.writeText(product.sourceUrl);
+        alert('Ürün linki kopyalandı!');
       }
     } catch (err) {
       console.error('Paylaşım hatası:', err);
