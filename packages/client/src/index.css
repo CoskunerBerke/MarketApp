@@ -267,7 +267,43 @@ body {
   to { background-position: -200% 0; }
 }
 
+/* Loading & Auth Overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.card {
+  background-color: var(--bg-card);
+  border-radius: 2rem;
+  border: 1px solid var(--border);
+  padding: 2.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hide-mobile {
+  display: flex;
+}
+
 @media (max-width: 768px) {
   .hero h1 { font-size: 2.5rem; }
   .product-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .hide-mobile { display: none; }
 }
