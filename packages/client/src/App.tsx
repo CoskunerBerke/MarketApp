@@ -209,25 +209,34 @@ function App() {
                <div style={{ display: 'flex', gap: '0.75rem' }}>
                  <button 
                    onClick={() => setSelectedMarket('BİM')} 
-                   className={`btn ${selectedMarket === 'BİM' ? 'btn-primary' : 'btn-outline'}`}
                    style={{ 
-                     padding: '0.5rem 1.5rem', 
+                     padding: '0.6rem 1.75rem', 
                      fontWeight: 700,
-                     borderColor: selectedMarket === 'BİM' ? undefined : 'rgba(255,255,255,0.4)',
-                     color: selectedMarket === 'BİM' ? 'white' : 'rgba(255,255,255,0.85)'
+                     fontSize: '0.95rem',
+                     borderRadius: '0.75rem',
+                     border: '2px solid',
+                     cursor: 'pointer',
+                     transition: 'all 0.2s ease',
+                     backgroundColor: selectedMarket === 'BİM' ? 'var(--primary)' : 'transparent',
+                     borderColor: selectedMarket === 'BİM' ? 'var(--primary)' : 'rgba(255,255,255,0.3)',
+                     color: selectedMarket === 'BİM' ? 'white' : 'rgba(255,255,255,0.7)'
                    }}
                  >
                    BİM
                  </button>
                  <button 
                    onClick={() => setSelectedMarket('ŞOK')} 
-                   className={`btn ${selectedMarket === 'ŞOK' ? 'btn-primary' : 'btn-outline'}`}
                    style={{ 
-                     padding: '0.5rem 1.5rem', 
+                     padding: '0.6rem 1.75rem', 
                      fontWeight: 700, 
+                     fontSize: '0.95rem',
+                     borderRadius: '0.75rem',
+                     border: '2px solid',
+                     cursor: 'pointer',
+                     transition: 'all 0.2s ease',
                      backgroundColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'transparent', 
-                     borderColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'rgba(255,255,255,0.4)', 
-                     color: selectedMarket === 'ŞOK' ? 'white' : 'rgba(255,255,255,0.85)' 
+                     borderColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'rgba(255,255,255,0.3)', 
+                     color: selectedMarket === 'ŞOK' ? 'white' : 'rgba(255,255,255,0.7)' 
                    }}
                  >
                    ŞOK
