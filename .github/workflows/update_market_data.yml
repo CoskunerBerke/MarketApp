@@ -1,0 +1,21 @@
+name: Market Data Auto Update
+
+on:
+  schedule:
+    # Türkiye Saati (TRT) ile: 00:30, 08:30, 13:30, 19:30
+    # UTC karşılıkları (UTC = TRT - 3): 21:30, 05:30, 10:30, 16:30
+    - cron: '30 21 * * *'
+    - cron: '30 5 * * *'
+    - cron: '30 10 * * *'
+    - cron: '30 16 * * *'
+  workflow_dispatch: # Manuel çalıştırma için
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Scraper API
+        run: |
+          curl -X POST https://market-backend-oozv.onrender.com/api/scrape/bim \
+          -H "x-api-key: ${{ secrets.SCRAPER_API_KEY }}" \
+          -H "Content-Type: application/json"

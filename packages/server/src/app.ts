@@ -30,9 +30,16 @@ app.get('/api/system/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Manual/External scrape trigger
+// Manual/External scrape trigger with security check
 app.post('/api/scrape/bim', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  
+  if (apiKey !== process.env.SCRAPER_API_KEY) {
+    return res.status(401).json({ message: 'Unauthorized: Invalid API Key' });
+  }
+
   try {
+    console.log('External trigger: Starting BİM scrape...');
     scrapeSpecificMarket('BİM'); // Run in background
     res.json({ message: 'BİM tarama işlemi arka planda başlatıldı.' });
   } catch (error) {
