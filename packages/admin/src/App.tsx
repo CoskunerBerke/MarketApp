@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './index.css';
 
+// Force redeploy - Update UI with market tabs and scrape buttons
+
 const api = axios.create({ 
   baseURL: window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api' 
