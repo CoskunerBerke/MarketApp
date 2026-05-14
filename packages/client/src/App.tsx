@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ShoppingBag, Search, Tag, ExternalLink, Zap, Info, User, LogOut, X, Heart, Mail, Lock } from 'lucide-react';
+import { ShoppingBag, Search, Tag, ExternalLink, User, LogOut, X, Heart, Mail, Lock } from 'lucide-react';
 import './index.css';
 
 const api = axios.create({ 
