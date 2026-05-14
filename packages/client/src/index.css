@@ -48,13 +48,14 @@ body {
 
 /* Header & Nav */
 .navbar {
-  backdrop-filter: blur(12px);
-  background-color: var(--glass);
-  border-bottom: 1px solid var(--border);
-  padding: 1rem 0;
   position: sticky;
   top: 0;
   z-index: 50;
+  padding: 1rem 0;
+  background-color: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
 }
 
 .nav-content {
@@ -284,12 +285,13 @@ body {
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.85);
-  backdrop-filter: blur(12px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   animation: fadeIn 0.3s ease;
 }
 
