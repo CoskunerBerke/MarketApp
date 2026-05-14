@@ -13,7 +13,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logger Middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
@@ -25,12 +24,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/categories', categoryRoutes);
 
-// Health check for keep-alive pings
 app.get('/api/system/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Manual/External scrape trigger with security check
 app.post('/api/scrape/bim', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
   
@@ -40,7 +37,7 @@ app.post('/api/scrape/bim', async (req, res) => {
 
   try {
     console.log('External trigger: Starting BİM scrape...');
-    scrapeSpecificMarket('BİM'); // Run in background
+    scrapeSpecificMarket('BİM');
     res.json({ message: 'BİM tarama işlemi arka planda başlatıldı.' });
   } catch (error) {
     res.status(500).json({ message: 'Tarama başlatılırken bir hata oluştu.' });

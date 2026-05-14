@@ -24,13 +24,11 @@ const HomeScreen = ({ navigation }: any) => {
   const fetchData = async () => {
     try {
       const allProducts = await getProducts();
-      // Only BİM products as per current preference
       const bimProducts = allProducts.filter((p: any) => p.marketId?.name === 'BİM');
       setProducts(bimProducts);
       
       if (token) {
         const favs = await getFavorites();
-        // Backend returns Favorite objects with .product field
         setFavoriteIds(favs.map((f: any) => f.product._id));
       } else {
         setFavoriteIds([]);
@@ -64,7 +62,6 @@ const HomeScreen = ({ navigation }: any) => {
     }
     try {
       const res = await toggleFavorite(productId);
-      // Backend now returns updated favorites list IDs
       setFavoriteIds(res.favorites);
     } catch (error) {
       Alert.alert('Hata', 'Favori işlemi başarısız oldu.');
@@ -131,7 +128,6 @@ const HomeScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* Header Area */}
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Hoş Geldin,</Text>
@@ -142,7 +138,6 @@ const HomeScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
       <View style={styles.searchBox}>
         <Ionicons name="search" size={20} color={theme.colors.textMuted} style={{ marginRight: 10 }} />
         <TextInput 
@@ -154,7 +149,6 @@ const HomeScreen = ({ navigation }: any) => {
         />
       </View>
 
-      {/* Filter Tabs */}
       <View style={styles.tabRow}>
         <TouchableOpacity 
           style={[styles.tab, viewMode === 'all' && styles.tabActive]}

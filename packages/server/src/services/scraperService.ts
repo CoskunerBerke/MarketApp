@@ -13,7 +13,6 @@ const initMarketsAndCategories = async () => {
     await Market.findOneAndUpdate({ name: m.name }, { $set: m }, { upsert: true });
   }
 
-  // Delete any market that is NOT BİM to satisfy user's request for only BİM
   await Market.deleteMany({ name: { $ne: 'BİM' } });
 
   const categories = [
@@ -28,7 +27,7 @@ const initMarketsAndCategories = async () => {
 };
 
 const getSafeUrl = (targetUrl: string) => {
-  return targetUrl; // Google redirect kaldırıldı, temiz link kullanılıyor
+  return targetUrl;
 };
 
 let isScraping = false;
@@ -56,8 +55,6 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         const $home = cheerio.load(homeRes.data);
         const dateKeys: string[] = [];
         
-        // 1. Headerdaki "Ürünler" menüsünden sadece "İNDİRİM" sütunundaki anahtarları topla
-        let indirimColIndex = -1;
         $home('.aktuelsubmenu table tr').first().find('td, th').each((i, el) => {
           const text = $home(el).text().toUpperCase();
           if (text.includes('İNDİRİM') || text.includes('INDIRIM')) {
@@ -65,9 +62,8 @@ export const scrapeSpecificMarket = async (marketName: string) => {
           }
         });
 
-        // Eğer ilk satırda bulamazsak genel arama yap
         if (indirimColIndex === -1) {
-          indirimColIndex = 1; // Fallback to 2nd column
+          indirimColIndex = 1;
         }
 
         $home('.aktuelsubmenu table tr').each((_, tr) => {
@@ -118,21 +114,16 @@ export const scrapeSpecificMarket = async (marketName: string) => {
               const details = $(el).find('.gramajadet').text().trim();
               const fullName = `${subTitle} ${title} ${details}`.trim();
               
-              // Unified price parser for BİM's inconsistent HTML
               const getBimPrice = (selector: string) => {
                 const $container = $(el).find(selector);
                 if ($container.length === 0) return null;
-
                 const wholeText = $container.find('.text.quantify').text().trim();
                 const decimalText = $container.find('.kusurArea .number').text().trim();
-
                 if (decimalText) {
-                  // Case 1: Split price (e.g., 48 in quantify, 50 in number)
                   const w = wholeText.replace(/[^\d]/g, '');
                   const d = decimalText.replace(/[^\d]/g, '');
                   return parseFloat(`${w}.${d}`);
                 } else {
-                  // Case 2: Combined price (e.g., "54,00" in quantify)
                   const normalized = wholeText.replace(',', '.').replace(/[^\d.]/g, '');
                   const parts = normalized.split('.');
                   if (parts.length > 2) {
@@ -154,7 +145,6 @@ export const scrapeSpecificMarket = async (marketName: string) => {
 
               const discountRate = discountText ? parseInt(discountText) : (oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
 
-              // Lazy loaded images use xsrc
               const imgPath = $(el).find('.image img').attr('xsrc') || $(el).find('.image img').attr('src') || $(el).find('img').attr('xsrc') || $(el).find('img').attr('src');
               
               if (!fullName || isNaN(price) || !imgPath) continue;
@@ -183,7 +173,6 @@ export const scrapeSpecificMarket = async (marketName: string) => {
               );
               totalSuccessCount++;
             }
-            // Anti-throttling delay (500ms - 1500ms arası rastgele)
             const randomDelay = Math.floor(Math.random() * 1000) + 500;
             await new Promise(resolve => setTimeout(resolve, randomDelay));
           } catch (err: any) {
@@ -191,7 +180,6 @@ export const scrapeSpecificMarket = async (marketName: string) => {
           }
         }
 
-        // Son aşama: Bu tarama sırasında en az 5 ürün güncellendiyse (başarılıysa), eski ürünleri sil
         if (totalSuccessCount >= 5) {
           const deletedResult = await Product.deleteMany({
             marketId: market._id,
