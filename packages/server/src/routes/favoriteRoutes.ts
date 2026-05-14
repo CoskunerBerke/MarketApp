@@ -23,11 +23,15 @@ router.route('/')
       
       if (alreadyFavorited) {
         await Favorite.findByIdAndDelete(alreadyFavorited._id);
-        return res.json({ message: 'Removed from favorites', action: 'removed' });
       } else {
-        const favorite = await Favorite.create({ user: req.user._id, product: productId });
-        return res.status(201).json({ message: 'Added to favorites', action: 'added', favorite });
+        await Favorite.create({ user: req.user._id, product: productId });
       }
+
+      // Return updated list of favorited product IDs
+      const updatedFavorites = await Favorite.find({ user: req.user._id });
+      const favoriteIds = updatedFavorites.map(f => f.product.toString());
+      
+      res.json({ favorites: favoriteIds });
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
     }

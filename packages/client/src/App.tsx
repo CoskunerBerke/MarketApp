@@ -94,18 +94,18 @@ function App() {
   };
 
   const toggleFavorite = async (productId: string) => {
-    // DEBUG: Bu uyarıyı görüyorsan buton çalışıyor demektir.
-    console.log('toggleFavorite clicked for:', productId);
-    
     if (!user) {
       setShowAuthModal(true);
       return;
     }
     try {
       const token = localStorage.getItem('token');
-      const { data } = await api.post(`/users/favorites/${productId}`, {}, {
+      // Fix: Calling the correct /favorites endpoint and passing productId in body
+      const { data } = await api.post('/favorites', { productId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      // Update local state with the returned list of IDs
       setFavorites(data.favorites);
       const updatedUser = { ...user, favorites: data.favorites };
       setUser(updatedUser);
