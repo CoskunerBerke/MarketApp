@@ -211,6 +211,19 @@ body {
   align-items: flex-end;
 }
 
+.promo-banner-web {
+  background-color: #EC2027;
+  color: white;
+  padding: 0.6rem;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  border-radius: 1rem;
+  margin-top: 1.25rem;
+  box-shadow: 0 4px 12px rgba(236, 32, 39, 0.3);
+  text-transform: uppercase;
+}
+
 .old-price {
   color: var(--text-muted);
   text-decoration: line-through;

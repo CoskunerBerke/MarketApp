@@ -13,6 +13,8 @@ interface Product {
   price: number;
   oldPrice: number;
   discountRate: number;
+  promotionPrice?: number;
+  promotionText?: string;
   imageUrl: string;
   sourceUrl: string;
   marketId: {
@@ -38,9 +40,8 @@ function App() {
   const fetchProducts = async () => {
     try {
       const { data } = await api.get('/products');
-      const bimProducts = data.filter((p: any) => p.marketId?.name === 'BİM');
-      setProducts(bimProducts);
-      setFilteredProducts(bimProducts);
+      setProducts(data);
+      setFilteredProducts(data);
     } catch (err) {
       console.error('Veri çekilemedi:', err);
     } finally {
@@ -190,7 +191,7 @@ function App() {
       <main className="container">
         <header className="hero animate-up">
           <h1>Kaçırılmayacak İndirimler</h1>
-          <p>BİM marketlerindeki en güncel fırsatlar tek bir yerde.</p>
+          <p>En güncel BİM ve ŞOK fırsatları tek bir yerde.</p>
           <div className="search-container">
             <Search className="search-icon" size={24} />
             <input type="text" className="search-input" placeholder="Ürün ara..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -216,7 +217,7 @@ function App() {
 
             <div className="product-grid">
               {filteredProducts.map((product, index) => (
-                <div key={product._id} className="product-card animate-up" style={{ animationDelay: `${index * 0.05}s`, position: 'relative' }}>
+                <div key={product._id} className="product-card animate-up" style={{ animationDelay: `${index * 0.05}s`, position: 'relative', overflow: 'hidden' }}>
                   <button 
                     className="fav-btn-elite" 
                     onClick={(e) => { 
@@ -231,36 +232,47 @@ function App() {
                       background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.7)', 
                       border: 'none', 
                       borderRadius: '50%', 
-                      width: '46px', 
-                      height: '46px', 
+                      width: '40px', 
+                      height: '40px', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center', 
                       cursor: 'pointer', 
                       transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
                       backdropFilter: 'blur(12px)', 
-                      zIndex: 999,
+                      zIndex: 10,
                       boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                       padding: 0
                     }}
                   >
-                    <Heart size={26} color="white" fill={favorites.includes(product._id) ? "white" : "none"} style={{ pointerEvents: 'none' }} />
+                    <Heart size={20} color="white" fill={favorites.includes(product._id) ? "white" : "none"} style={{ pointerEvents: 'none' }} />
                   </button>
                   <div className="img-container">
                     <img src={product.imageUrl} alt={product.name} className="product-img" />
-                    <div className="discount-badge">%{product.discountRate} İNDİRİM</div>
+                    <div className="discount-badge">%{product.discountRate || 0} İNDİRİM</div>
                   </div>
-                  <span className="market-badge">BİM İNDİRİM</span>
+                  <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--primary)' }}>
+                    {product.marketId?.name} İNDİRİM
+                  </span>
                   <h3 className="product-name">{product.name}</h3>
                   <div className="price-section">
                     <div className="price-box">
-                      <span className="old-price">₺{product.oldPrice?.toFixed(2)}</span>
-                      <div className="new-price">₺{product.price?.toFixed(2)}</div>
+                      <span className="old-price">
+                        ₺{(product.promotionPrice ? product.price : product.oldPrice)?.toFixed(2)}
+                      </span>
+                      <div className="new-price">
+                        ₺{(product.promotionPrice || product.price)?.toFixed(2)}
+                      </div>
                     </div>
-                    <Tag size={20} color="var(--accent-orange)" />
+                    <Tag size={20} color={product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--accent-orange)'} />
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
-                    <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1 }}>Fırsatı Gör <ExternalLink size={18} /></a>
+                  {product.promotionText && (
+                    <div className="promo-banner-web">
+                      {product.promotionText}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1, backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--primary)' }}>Fırsatı Gör <ExternalLink size={18} /></a>
                     <button className="btn-outline" style={{ padding: '0.75rem' }} onClick={() => handleShare(product)}>
                       <Share2 size={20} />
                     </button>

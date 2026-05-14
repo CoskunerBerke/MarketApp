@@ -6,14 +6,15 @@ import Category from '../models/Category';
 
 const initMarketsAndCategories = async () => {
   const markets = [
-    { name: 'BİM', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Bim_logo.png' }
+    { name: 'BİM', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Bim_logo.png' },
+    { name: 'ŞOK', logoUrl: 'https://kurumsal.sokmarket.com.tr/assets/images/logo.png' }
   ];
 
   for (const m of markets) {
     await Market.findOneAndUpdate({ name: m.name }, { $set: m }, { upsert: true });
   }
 
-  await Market.deleteMany({ name: { $ne: 'BİM' } });
+  await Market.deleteMany({ name: { $nin: ['BİM', 'ŞOK'] } });
 
   const categories = [
     { name: 'Gıda', slug: 'gida' },
@@ -192,6 +193,87 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         }
 
       } catch (err) { console.error('BİM ana sayfa hatası:', err); }
+    } else if (marketName === 'ŞOK') {
+      try {
+        const targetUrl = 'https://www.sokmarket.com.tr/bunlari-kacirmayin-cms-mps53';
+        console.log(`ŞOK Tarama Başlıyor: ${targetUrl}`);
+        
+        const response = await axios.get(targetUrl, {
+          headers: { 
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+          },
+          timeout: 20000
+        });
+
+        const $ = cheerio.load(response.data);
+        const productWrappers = $('[class*="CProductCard-module_productCardWrapper"]').toArray();
+        let totalSuccessCount = 0;
+
+        for (const el of productWrappers) {
+          try {
+            const title = $(el).find('[class*="CProductCard-module_title"]').text().trim();
+            const priceText = $(el).find('[class*="CPriceBox-module_price"]').first().text().trim();
+            const imageUrl = $(el).find('img').attr('src');
+            const promotionText = $(el).find('[class*="CProductCard-module_promotionBadgeContainer"]').text().trim();
+            const sourceUrlSuffix = $(el).find('a').attr('href');
+            const sourceUrl = sourceUrlSuffix ? (sourceUrlSuffix.startsWith('http') ? sourceUrlSuffix : `https://www.sokmarket.com.tr${sourceUrlSuffix}`) : targetUrl;
+
+            if (!title || !priceText) continue;
+
+            // Parse normal price - take only the first numeric part
+            const cleanPriceText = priceText.split('<!--')[0].replace(',', '.').replace(/[^\d.]/g, '');
+            const price = parseFloat(cleanPriceText);
+            
+            // Parse promotion price if exists (e.g. "50 TL üzeri 125.00 TL!")
+            let promotionPrice: number | undefined = undefined;
+            if (promotionText && promotionText.includes('üzeri')) {
+              const parts = promotionText.split('üzeri');
+              if (parts.length > 1) {
+                const promoPriceMatch = parts[1].match(/(\d+\.?\d*)/);
+                if (promoPriceMatch) {
+                  promotionPrice = parseFloat(promoPriceMatch[1]);
+                }
+              }
+            }
+
+            await Product.findOneAndUpdate(
+              { name: title, marketId: market._id },
+              {
+                $set: {
+                  name: title,
+                  marketId: market._id,
+                  price,
+                  oldPrice: price, // Sok usually doesn't show crossed-out price in this list
+                  promotionPrice,
+                  promotionText: promotionText || undefined,
+                  imageUrl,
+                  sourceUrl,
+                  isScraped: true,
+                  categoryId: gida?._id,
+                  updatedAt: new Date()
+                }
+              },
+              { upsert: true }
+            );
+            totalSuccessCount++;
+          } catch (itemErr) {
+            console.error('ŞOK ürün işleme hatası:', itemErr);
+          }
+        }
+
+        console.log(`ŞOK Tarama Tamamlandı. ${totalSuccessCount} ürün güncellendi.`);
+        
+        if (totalSuccessCount >= 5) {
+          const deletedResult = await Product.deleteMany({
+            marketId: market._id,
+            updatedAt: { $lt: scrapeStartTime }
+          });
+          console.log(`ŞOK: ${deletedResult.deletedCount} eski ürün silindi.`);
+        }
+
+      } catch (err) {
+        console.error('ŞOK tarama hatası:', err);
+      }
     }
   } catch (error) { console.error(`Error in ${marketName}:`, error); }
   finally {
@@ -201,4 +283,8 @@ export const scrapeSpecificMarket = async (marketName: string) => {
 
 export const triggerBimScrape = async () => {
   await scrapeSpecificMarket('BİM');
+};
+
+export const triggerSokScrape = async () => {
+  await scrapeSpecificMarket('ŞOK');
 };

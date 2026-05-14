@@ -10,6 +10,8 @@ export interface IProduct extends Document {
   price: number;
   oldPrice?: number;
   discountRate?: number;
+  promotionPrice?: number;
+  promotionText?: string;
   campaignStartDate?: Date;
   campaignEndDate?: Date;
 }
@@ -24,6 +26,8 @@ const ProductSchema: Schema = new Schema({
   price: { type: Number, required: true },
   oldPrice: { type: Number },
   discountRate: { type: Number },
+  promotionPrice: { type: Number },
+  promotionText: { type: String },
   campaignStartDate: { type: Date },
   campaignEndDate: { type: Date },
 }, { timestamps: true });

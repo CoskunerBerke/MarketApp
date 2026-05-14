@@ -8,10 +8,10 @@ dotenv.config();
 
 connectDB();
 
-cron.schedule('30 21 * * *', () => scrapeSpecificMarket('BİM'));
-cron.schedule('30 5 * * *', () => scrapeSpecificMarket('BİM'));
-cron.schedule('30 10 * * *', () => scrapeSpecificMarket('BİM'));
-cron.schedule('30 16 * * *', () => scrapeSpecificMarket('BİM'));
+cron.schedule('30 21 * * *', () => { scrapeSpecificMarket('BİM'); scrapeSpecificMarket('ŞOK'); });
+cron.schedule('30 5 * * *', () => { scrapeSpecificMarket('BİM'); scrapeSpecificMarket('ŞOK'); });
+cron.schedule('30 10 * * *', () => { scrapeSpecificMarket('BİM'); scrapeSpecificMarket('ŞOK'); });
+cron.schedule('30 16 * * *', () => { scrapeSpecificMarket('BİM'); scrapeSpecificMarket('ŞOK'); });
 
 const PORT = process.env.PORT || 5000;
 

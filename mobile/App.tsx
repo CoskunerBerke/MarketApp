@@ -24,8 +24,7 @@ const HomeScreen = ({ navigation }: any) => {
   const fetchData = async () => {
     try {
       const allProducts = await getProducts();
-      const bimProducts = allProducts.filter((p: any) => p.marketId?.name === 'BİM');
-      setProducts(bimProducts);
+      setProducts(allProducts);
       
       if (token) {
         const favs = await getFavorites();
@@ -109,18 +108,29 @@ const HomeScreen = ({ navigation }: any) => {
       </View>
       
       <View style={styles.productInfo}>
-        <Text style={styles.marketLabel}>BİM Fırsatı</Text>
+        <Text style={[styles.marketLabel, item.marketId?.name === 'ŞOK' && { color: '#EC2027' }]}>
+          {item.marketId?.name} FIRSATI
+        </Text>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
         <View style={styles.priceRow}>
           <View>
-            <Text style={styles.oldPrice}>₺{item.oldPrice?.toFixed(2)}</Text>
-            <Text style={styles.currentPrice}>₺{item.price?.toFixed(2)}</Text>
+            <Text style={styles.oldPrice}>
+              ₺{(item.promotionPrice ? item.price : item.oldPrice)?.toFixed(2)}
+            </Text>
+            <Text style={styles.currentPrice}>
+              ₺{(item.promotionPrice || item.price)?.toFixed(2)}
+            </Text>
           </View>
-          <View style={styles.arrowIcon}>
+          <View style={[styles.arrowIcon, item.marketId?.name === 'ŞOK' && { backgroundColor: '#EC2027' }]}>
              <Ionicons name="chevron-forward" size={16} color="white" />
           </View>
         </View>
       </View>
+      {item.promotionText && (
+        <View style={styles.promoBanner}>
+          <Text style={styles.promoText}>{item.promotionText}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -206,16 +216,28 @@ const ProductDetailScreen = ({ route }: any) => {
         <View style={styles.detailCard}>
           <Image source={{ uri: product.imageUrl }} style={styles.detailImage} />
           <View style={styles.detailInfo}>
-            <Text style={styles.detailMarket}>BİM AKTÜEL ÜRÜN</Text>
+            <Text style={[styles.detailMarket, product.marketId?.name === 'ŞOK' && { color: '#EC2027' }]}>
+              {product.marketId?.name} AKTÜEL ÜRÜN
+            </Text>
             <Text style={styles.detailName}>{product.name}</Text>
             
+            {product.promotionText && (
+              <View style={[styles.promoBanner, { marginBottom: 15, borderRadius: 10 }]}>
+                <Text style={[styles.promoText, { fontSize: 16 }]}>{product.promotionText}</Text>
+              </View>
+            )}
+
             <View style={styles.detailPriceRow}>
                <View>
-                  <Text style={[styles.oldPrice, { fontSize: 18 }]}>₺{product.oldPrice?.toFixed(2)}</Text>
-                  <Text style={styles.detailPrice}>₺{product.price?.toFixed(2)}</Text>
+                  <Text style={[styles.oldPrice, { fontSize: 18 }]}>
+                    ₺{(product.promotionPrice ? product.price : product.oldPrice)?.toFixed(2)}
+                  </Text>
+                  <Text style={styles.detailPrice}>
+                    ₺{(product.promotionPrice || product.price)?.toFixed(2)}
+                  </Text>
                </View>
                <View style={styles.detailDiscount}>
-                  <Text style={styles.detailDiscountText}>%{product.discountRate} İNDİRİM</Text>
+                  <Text style={styles.detailDiscountText}>%{product.discountRate || 0} İNDİRİM</Text>
                </View>
             </View>
 
@@ -428,6 +450,20 @@ const styles = StyleSheet.create({
   currentPrice: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  promoBanner: {
+    backgroundColor: '#EC2027',
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    alignItems: 'center',
+  },
+  promoText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   arrowIcon: {
