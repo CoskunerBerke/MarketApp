@@ -13,9 +13,10 @@ const generateToken = (id: string) => {
 
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = email.toLowerCase().trim();
 
   try {
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizedEmail });
 
     if (userExists) {
       return res.status(400).json({ message: 'Bu mail adresi zaten kayıtlı.' });
@@ -25,7 +26,7 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       passwordHash,
     });
 
@@ -46,9 +47,21 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = email.toLowerCase().trim();
 
   try {
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email: normalizedEmail });
+
+    // Fallback: If not found with lowercase, try original (for older accounts)
+    if (!user) {
+      user = await User.findOne({ email: email.trim() });
+      if (user) {
+        // Migration: Update the user to use normalized email for future logins
+        user.email = normalizedEmail;
+        await user.save();
+        console.log(`Auto-normalized account: ${normalizedEmail}`);
+      }
+    }
 
     if (!user) {
       return res.status(401).json({ message: 'Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.' });
@@ -73,8 +86,9 @@ router.post('/login', async (req, res) => {
 // Mock forgot password (in a real app, this sends an email)
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
+  const normalizedEmail = email.toLowerCase().trim();
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(404).json({ message: 'Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.' });
     }
@@ -95,9 +109,10 @@ router.post('/forgot-password', async (req, res) => {
 
 router.post('/reset-password', async (req, res) => {
   const { email, token, newPassword } = req.body;
+  const normalizedEmail = email.toLowerCase().trim();
   try {
     const user = await User.findOne({
-      email,
+      email: normalizedEmail,
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() }
     });
