@@ -198,19 +198,32 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         const targetUrl = 'https://www.sokmarket.com.tr/bunlari-kacirmayin-cms-mps53';
         console.log(`ŞOK Tarama Başlıyor: ${targetUrl}`);
         
-        const response = await axios.get(targetUrl, {
-          headers: { 
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
-          timeout: 20000
-        });
+        let htmlData = '';
+        
+        try {
+          const directResponse = await axios.get(targetUrl, {
+            headers: { 
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+              'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Sec-Fetch-Dest': 'document',
+              'Sec-Fetch-Mode': 'navigate',
+              'Sec-Fetch-Site': 'none',
+              'Sec-Fetch-User': '?1',
+            },
+            timeout: 20000
+          });
+          htmlData = directResponse.data;
+          console.log(`ŞOK: Direct fetch succeeded, ${htmlData.length} bytes`);
+        } catch (directErr: any) {
+          console.log(`ŞOK: Direct fetch failed (${directErr.response?.status || directErr.message}), trying proxy...`);
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+          const proxyResponse = await axios.get(proxyUrl, { timeout: 30000 });
+          htmlData = proxyResponse.data;
+          console.log(`ŞOK: Proxy fetch succeeded, ${htmlData.length} bytes`);
+        }
 
-        const $ = cheerio.load(response.data);
-        // Using a more flexible selector that handles Next.js dynamic classes better
+        const $ = cheerio.load(htmlData);
         const productWrappers = $('div[class*="productCardWrapper"]').toArray();
         let totalSuccessCount = 0;
 
