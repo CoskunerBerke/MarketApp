@@ -29,6 +29,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
+  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK'>('BİM');
   
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -41,7 +42,6 @@ function App() {
     try {
       const { data } = await api.get('/products');
       setProducts(data);
-      setFilteredProducts(data);
     } catch (err) {
       console.error('Veri çekilemedi:', err);
     } finally {
@@ -60,7 +60,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let results = products;
+    let results = products.filter(p => p.marketId?.name === selectedMarket);
+    
     if (viewMode === 'favorites') {
       results = results.filter(p => favorites.includes(p._id));
     }
@@ -68,7 +69,7 @@ function App() {
       results = results.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     setFilteredProducts(results);
-  }, [searchTerm, products, viewMode, favorites]);
+  }, [searchTerm, products, viewMode, favorites, selectedMarket]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,11 +206,25 @@ function App() {
         ) : (
           <section>
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-               <div style={{ display: 'flex', gap: '1rem' }}>
-                 <button onClick={() => setViewMode('all')} className={`btn ${viewMode === 'all' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1.5rem' }}>Hepsi</button>
+               <div style={{ display: 'flex', gap: '0.75rem' }}>
+                 <button 
+                   onClick={() => setSelectedMarket('BİM')} 
+                   className={`btn ${selectedMarket === 'BİM' ? 'btn-primary' : 'btn-outline'}`}
+                   style={{ padding: '0.5rem 1.5rem', fontWeight: 700 }}
+                 >
+                   BİM
+                 </button>
+                 <button 
+                   onClick={() => setSelectedMarket('ŞOK')} 
+                   className={`btn ${selectedMarket === 'ŞOK' ? 'btn-primary' : 'btn-outline'}`}
+                   style={{ padding: '0.5rem 1.5rem', fontWeight: 700, backgroundColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'transparent', borderColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'var(--border)' }}
+                 >
+                   ŞOK
+                 </button>
+                 <div style={{ width: '1px', background: 'var(--border)', margin: '0 0.5rem' }}></div>
                  <button onClick={() => { if(!user) setShowAuthModal(true); else setViewMode('favorites'); }} className={`btn ${viewMode === 'favorites' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                    <Heart size={18} fill={viewMode === 'favorites' ? 'white' : 'none'} />
-                   Favorilerim {favorites.length > 0 && `(${favorites.length})`}
+                   Favorilerim
                  </button>
                </div>
                <span style={{ background: 'var(--border)', padding: '0.4rem 1rem', borderRadius: '2rem', fontSize: '0.875rem' }}>{filteredProducts.length} Ürün Listeleniyor</span>
@@ -251,8 +266,8 @@ function App() {
                     <img src={product.imageUrl} alt={product.name} className="product-img" />
                     <div className="discount-badge">%{product.discountRate || 0} İNDİRİM</div>
                   </div>
-                  <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--primary)' }}>
-                    {product.marketId?.name} İNDİRİM
+                  <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--primary)', color: 'white' }}>
+                    {product.marketId?.name || 'BİM'} İNDİRİM
                   </span>
                   <h3 className="product-name">{product.name}</h3>
                   <div className="price-section">

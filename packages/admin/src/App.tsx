@@ -25,21 +25,31 @@ const StatCard = ({ icon: Icon, title, value, color }: any) => (
 
 const Dashboard = () => {
   const [products, setProducts] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, bim: 0 });
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK'>('BİM');
+  const [stats, setStats] = useState({ total: 0, bim: 0, sok: 0 });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   const fetchData = async () => {
     try {
       const { data } = await api.get('/products');
-      // Filter for BİM only as requested
-      const bimProducts = data.filter((p: any) => p.marketId?.name === 'BİM');
-      setProducts(bimProducts);
-      setStats({ total: bimProducts.length, bim: bimProducts.length });
+      setAllProducts(data);
+      const bimCount = data.filter((p: any) => p.marketId?.name === 'BİM').length;
+      const sokCount = data.filter((p: any) => p.marketId?.name === 'ŞOK').length;
+      setStats({ total: data.length, bim: bimCount, sok: sokCount });
+      
+      const filtered = data.filter((p: any) => p.marketId?.name === selectedMarket);
+      setProducts(filtered);
     } catch (err) {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    const filtered = allProducts.filter((p: any) => p.marketId?.name === selectedMarket);
+    setProducts(filtered);
+  }, [selectedMarket, allProducts]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -49,7 +59,7 @@ const Dashboard = () => {
     try {
       await api.post(`/scrape/${market.toLowerCase()}`);
       setMessage({ text: `${market} tarama işlemi başlatıldı! Veriler birazdan güncellenecektir.`, type: 'success' });
-      setTimeout(fetchData, 8000); // Give it more time for 90 products
+      setTimeout(fetchData, 8000);
     } catch (err) {
       setMessage({ text: `${market} güncellenirken bir hata oluştu.`, type: 'error' });
     } finally {
@@ -63,7 +73,10 @@ const Dashboard = () => {
         <h1>Dashboard</h1>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn btn-primary" onClick={() => handleScrape('bim')}>
-            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> BİM Verilerini Güncelle
+            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> BİM Tarat
+          </button>
+          <button className="btn btn-primary" style={{ backgroundColor: '#EC2027', borderColor: '#EC2027' }} onClick={() => handleScrape('sok')}>
+            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> ŞOK Tarat
           </button>
         </div>
       </div>
@@ -79,13 +92,28 @@ const Dashboard = () => {
       )}
 
       <div className="stats-grid">
-        <StatCard icon={ShoppingCart} title="Toplam İndirimli Ürün" value={stats.total} color="var(--primary)" />
-        <StatCard icon={Store} title="Aktif Market" value="BİM" color="var(--accent-blue)" />
+        <StatCard icon={ShoppingCart} title="Toplam Ürün" value={stats.total} color="var(--primary)" />
+        <StatCard icon={Store} title="BİM Ürünleri" value={stats.bim} color="var(--accent-blue)" />
+        <StatCard icon={Store} title="ŞOK Ürünleri" value={stats.sok} color="#EC2027" />
       </div>
 
       <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Tüm BİM İndirimleri ({products.length} Ürün)</h2>
+        <div className="card-header" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              className={`btn ${selectedMarket === 'BİM' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setSelectedMarket('BİM')}
+            >
+              BİM Listesi
+            </button>
+            <button 
+              className={`btn ${selectedMarket === 'ŞOK' ? 'btn-primary' : 'btn-outline'}`}
+              style={selectedMarket === 'ŞOK' ? { backgroundColor: '#EC2027', borderColor: '#EC2027' } : {}}
+              onClick={() => setSelectedMarket('ŞOK')}
+            >
+              ŞOK Listesi
+            </button>
+          </div>
           <button className="btn btn-outline" onClick={fetchData}>Yenile</button>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -93,9 +121,8 @@ const Dashboard = () => {
             <thead>
               <tr>
                 <th>Ürün</th>
-                <th>Market</th>
                 <th>Fiyat</th>
-                <th>İndirim</th>
+                <th>İndirim/Kampanya</th>
                 <th>İşlem</th>
               </tr>
             </thead>
@@ -105,20 +132,35 @@ const Dashboard = () => {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <img src={product.imageUrl} alt="" className="product-img" />
-                      <span style={{ fontWeight: 500 }}>{product.name}</span>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{product.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{product.marketId?.name} İNDİRİM</div>
+                      </div>
                     </div>
-                  </td>
-                  <td>
-                    <span className="badge badge-blue">BİM</span>
                   </td>
                   <td>
                     <div className="price-box">
-                      <span className="old-price">₺{product.oldPrice?.toFixed(2)}</span>
-                      <span className="new-price">₺{product.price?.toFixed(2)}</span>
+                      {product.promotionPrice ? (
+                        <>
+                          <span className="old-price">₺{product.price?.toFixed(2)}</span>
+                          <span className="new-price" style={{ color: '#EC2027' }}>₺{product.promotionPrice?.toFixed(2)}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="old-price">₺{product.oldPrice?.toFixed(2)}</span>
+                          <span className="new-price">₺{product.price?.toFixed(2)}</span>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td>
-                    <span style={{ color: 'var(--accent-red)', fontWeight: 700 }}>%{product.discountRate}</span>
+                    {product.promotionText ? (
+                      <span className="badge" style={{ backgroundColor: 'rgba(236, 32, 39, 0.1)', color: '#EC2027', fontSize: '0.7rem' }}>
+                        {product.promotionText}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--accent-red)', fontWeight: 700 }}>%{product.discountRate || 0}</span>
+                    )}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>

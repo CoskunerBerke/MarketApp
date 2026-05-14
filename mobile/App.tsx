@@ -20,6 +20,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
+  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK'>('BİM');
 
   const fetchData = async () => {
     try {
@@ -44,7 +45,8 @@ const HomeScreen = ({ navigation }: any) => {
   }, [token]);
 
   const filteredProducts = useMemo(() => {
-    let result = products;
+    let result = products.filter(p => p.marketId?.name === selectedMarket);
+    
     if (viewMode === 'favorites') {
       result = result.filter(p => favoriteIds.includes(p._id));
     }
@@ -52,7 +54,7 @@ const HomeScreen = ({ navigation }: any) => {
       result = result.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
     }
     return result;
-  }, [products, searchQuery, viewMode, favoriteIds]);
+  }, [products, searchQuery, viewMode, favoriteIds, selectedMarket]);
 
   const handleToggleFavorite = async (productId: string) => {
     if (!token) {
@@ -161,11 +163,18 @@ const HomeScreen = ({ navigation }: any) => {
 
       <View style={styles.tabRow}>
         <TouchableOpacity 
-          style={[styles.tab, viewMode === 'all' && styles.tabActive]}
-          onPress={() => setViewMode('all')}
+          style={[styles.tab, selectedMarket === 'BİM' && styles.tabActive]}
+          onPress={() => { setSelectedMarket('BİM'); setViewMode('all'); }}
         >
-          <Text style={[styles.tabText, viewMode === 'all' && styles.tabTextActive]}>Tüm Ürünler</Text>
+          <Text style={[styles.tabText, selectedMarket === 'BİM' && styles.tabTextActive]}>BİM</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, selectedMarket === 'ŞOK' && { backgroundColor: '#EC2027', borderColor: '#EC2027' }]}
+          onPress={() => { setSelectedMarket('ŞOK'); setViewMode('all'); }}
+        >
+          <Text style={[styles.tabText, selectedMarket === 'ŞOK' && styles.tabTextActive]}>ŞOK</Text>
+        </TouchableOpacity>
+        <View style={{ width: 1, backgroundColor: theme.colors.border, marginHorizontal: 4 }} />
         <TouchableOpacity 
           style={[styles.tab, viewMode === 'favorites' && styles.tabActive]}
           onPress={() => {
