@@ -25,17 +25,17 @@ const StatCard = ({ icon: Icon, title, value, color }: any) => (
 
 const Dashboard = () => {
   const [products, setProducts] = useState<any[]>([]);
-  const [stats, setStats] = useState({ total: 0, bim: 0, a101: 0 });
+  const [stats, setStats] = useState({ total: 0, bim: 0 });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   const fetchData = async () => {
     try {
       const { data } = await api.get('/products');
-      setProducts(data);
-      const bimCount = data.filter((p: any) => p.marketId?.name === 'BİM').length;
-      const a101Count = data.filter((p: any) => p.marketId?.name === 'A101').length;
-      setStats({ total: data.length, bim: bimCount, a101: a101Count });
+      // Filter for BİM only as requested
+      const bimProducts = data.filter((p: any) => p.marketId?.name === 'BİM');
+      setProducts(bimProducts);
+      setStats({ total: bimProducts.length, bim: bimProducts.length });
     } catch (err) {
       console.error(err);
     }
@@ -49,7 +49,7 @@ const Dashboard = () => {
     try {
       await api.post(`/scrape/${market.toLowerCase()}`);
       setMessage({ text: `${market} tarama işlemi başlatıldı! Veriler birazdan güncellenecektir.`, type: 'success' });
-      setTimeout(fetchData, 5000); // Refresh after 5s
+      setTimeout(fetchData, 8000); // Give it more time for 90 products
     } catch (err) {
       setMessage({ text: `${market} güncellenirken bir hata oluştu.`, type: 'error' });
     } finally {
@@ -63,10 +63,7 @@ const Dashboard = () => {
         <h1>Dashboard</h1>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn btn-primary" onClick={() => handleScrape('bim')}>
-            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> BİM Güncelle
-          </button>
-          <button className="btn btn-outline" onClick={() => handleScrape('a101')}>
-            <RefreshCw size={18} /> A101 Güncelle
+            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> BİM Verilerini Güncelle
           </button>
         </div>
       </div>
@@ -74,7 +71,7 @@ const Dashboard = () => {
       {message && (
         <div className={`card`} style={{ 
           borderLeft: `4px solid ${message.type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)'}`,
-          display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem'
+          display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', marginBottom: '1.5rem'
         }}>
           {message.type === 'success' ? <CheckCircle color="var(--accent-green)" /> : <AlertCircle color="var(--accent-red)" />}
           <span>{message.text}</span>
@@ -82,15 +79,14 @@ const Dashboard = () => {
       )}
 
       <div className="stats-grid">
-        <StatCard icon={ShoppingCart} title="Toplam Ürün" value={stats.total} color="var(--primary)" />
-        <StatCard icon={Store} title="BİM İndirimleri" value={stats.bim} color="var(--accent-blue)" />
-        <StatCard icon={Store} title="A101 İndirimleri" value={stats.a101} color="var(--accent-green)" />
+        <StatCard icon={ShoppingCart} title="Toplam İndirimli Ürün" value={stats.total} color="var(--primary)" />
+        <StatCard icon={Store} title="Aktif Market" value="BİM" color="var(--accent-blue)" />
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Son Eklenen Ürünler</h2>
-          <button className="btn btn-outline" onClick={fetchData}>Hepsini Gör</button>
+          <h2 className="card-title">Tüm BİM İndirimleri ({products.length} Ürün)</h2>
+          <button className="btn btn-outline" onClick={fetchData}>Yenile</button>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
@@ -104,7 +100,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {products.slice(0, 10).map((product) => (
+              {products.map((product) => (
                 <tr key={product._id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -113,9 +109,7 @@ const Dashboard = () => {
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${product.marketId?.name === 'BİM' ? 'badge-blue' : 'badge-success'}`}>
-                      {product.marketId?.name || 'Bilinmiyor'}
-                    </span>
+                    <span className="badge badge-blue">BİM</span>
                   </td>
                   <td>
                     <div className="price-box">
@@ -128,7 +122,7 @@ const Dashboard = () => {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <a href={product.sourceUrl} target="_blank" className="btn btn-outline" style={{ padding: '0.4rem' }}>
+                      <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ padding: '0.4rem' }}>
                         <ExternalLink size={16} />
                       </a>
                     </div>
