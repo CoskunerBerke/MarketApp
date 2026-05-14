@@ -28,17 +28,19 @@ app.get('/api/system/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-app.post('/api/scrape/bim', async (req, res) => {
+app.post('/api/scrape/:market', async (req, res) => {
+  const { market } = req.params;
   const apiKey = req.headers['x-api-key'];
   
-  if (apiKey !== process.env.SCRAPER_API_KEY) {
+  if (process.env.SCRAPER_API_KEY && apiKey !== process.env.SCRAPER_API_KEY) {
     return res.status(401).json({ message: 'Unauthorized: Invalid API Key' });
   }
 
   try {
-    console.log('External trigger: Starting BİM scrape...');
-    scrapeSpecificMarket('BİM');
-    res.json({ message: 'BİM tarama işlemi arka planda başlatıldı.' });
+    const marketName = market.toUpperCase();
+    console.log(`External trigger: Starting ${marketName} scrape...`);
+    scrapeSpecificMarket(marketName);
+    res.json({ message: `${marketName} tarama işlemi arka planda başlatıldı.` });
   } catch (error) {
     res.status(500).json({ message: 'Tarama başlatılırken bir hata oluştu.' });
   }
