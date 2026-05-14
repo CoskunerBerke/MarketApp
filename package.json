@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
+    "build:admin": "cd packages/admin && npm install && npm run build",
     "install:all": "pnpm install"
   },
   "devDependencies": {
