@@ -55,6 +55,7 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         const $home = cheerio.load(homeRes.data);
         const dateKeys: string[] = [];
         
+        let indirimColIndex = -1;
         $home('.aktuelsubmenu table tr').first().find('td, th').each((i, el) => {
           const text = $home(el).text().toUpperCase();
           if (text.includes('İNDİRİM') || text.includes('INDIRIM')) {
