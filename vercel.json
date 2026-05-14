@@ -1,5 +1,7 @@
 {
+  "version": 2,
+  "outputDirectory": "packages/admin/dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/packages/admin/$1" }
+    { "source": "/(.*)", "destination": "/$1" }
   ]
 }

@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
-    "build": "pnpm -r run build",
-    "build:admin": "cd packages/admin && npm install && npm run build",
+    "build": "if [ \"$VERCEL_PROJECT_NAME\" = \"market-admin-panel\" ]; then cd packages/admin && npm install && npm run build; elif [ \"$VERCEL_PROJECT_NAME\" = \"market-app-client\" ]; then cd packages/client && npm install && npm run build; else pnpm -r run build; fi",
     "install:all": "pnpm install"
   },
   "devDependencies": {
