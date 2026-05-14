@@ -134,7 +134,7 @@ function App() {
             </div>
 
             {filteredProducts.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '5rem 0', color: var(--text-muted) }}>
+              <div style={{ textAlign: 'center', padding: '5rem 0', color: 'var(--text-muted)' }}>
                 <Info size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
                 <p>Aradığın kriterlere uygun ürün bulunamadı.</p>
               </div>
