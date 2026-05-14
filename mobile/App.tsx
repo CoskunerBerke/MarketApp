@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, Alert, Linking, StatusBar, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, Alert, Linking, StatusBar, SafeAreaView, Dimensions, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from './src/theme';
 import { getProducts, getMarkets, getFavorites, toggleFavorite } from './src/api';
