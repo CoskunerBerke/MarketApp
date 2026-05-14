@@ -200,21 +200,26 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         
         const response = await axios.get(targetUrl, {
           headers: { 
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           },
           timeout: 20000
         });
 
         const $ = cheerio.load(response.data);
-        const productWrappers = $('[class*="CProductCard-module_productCardWrapper"]').toArray();
+        // Using a more flexible selector that handles Next.js dynamic classes better
+        const productWrappers = $('div[class*="productCardWrapper"]').toArray();
         let totalSuccessCount = 0;
 
         for (const el of productWrappers) {
           try {
-            const title = $(el).find('[class*="CProductCard-module_title"]').text().trim();
-            const priceText = $(el).find('[class*="CPriceBox-module_price"]').first().text().trim();
+            const title = $(el).find('[class*="module_title"]').text().trim();
+            const priceText = $(el).find('[class*="module_price"]').first().text().trim();
             const imageUrl = $(el).find('img').attr('src');
-            const promotionText = $(el).find('[class*="CProductCard-module_promotionBadgeContainer"]').text().trim();
+            const promotionText = $(el).find('[class*="module_promotionBadgeContainer"]').text().trim();
             const sourceUrlSuffix = $(el).find('a').attr('href');
             const sourceUrl = sourceUrlSuffix ? (sourceUrlSuffix.startsWith('http') ? sourceUrlSuffix : `https://www.sokmarket.com.tr${sourceUrlSuffix}`) : targetUrl;
 
