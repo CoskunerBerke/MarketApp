@@ -45,6 +45,36 @@ app.post('/api/scrape/:market', async (req, res) => {
   }
 });
 
+app.get('/api/debug/sok', async (req, res) => {
+  try {
+    const axios = (await import('axios')).default;
+    const cheerio = await import('cheerio');
+    const response = await axios.get('https://www.sokmarket.com.tr/bunlari-kacirmayin-cms-mps53', {
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+      timeout: 20000
+    });
+    const $ = cheerio.load(response.data);
+    const wrappers = $('div[class*="productCardWrapper"]').toArray();
+    const products = wrappers.map(el => ({
+      title: $(el).find('[class*="module_title"]').text().trim(),
+      price: $(el).find('[class*="module_price"]').first().text().trim(),
+    }));
+    res.json({ 
+      htmlSize: response.data.length, 
+      status: response.status,
+      productCount: wrappers.length,
+      sampleProducts: products.slice(0, 3),
+      bodyPreview: $('body').text().trim().substring(0, 200)
+    });
+  } catch (err: any) {
+    res.json({ error: err.message });
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Market App API is running...');
 });
