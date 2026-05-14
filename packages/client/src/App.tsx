@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Search, Heart, ArrowRight, Clock } from 'lucide-react';
+import { Search, Heart, ArrowRight, Clock, X, User, LogOut } from 'lucide-react';
 import './index.css';
 
 // API URL configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://market-backend-oozv.onrender.com/api';
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000/api' 
+  : 'https://market-backend-oozv.onrender.com/api';
 
 interface Product {
   _id: string;
@@ -16,15 +18,40 @@ interface Product {
   sourceUrl: string;
 }
 
+interface UserData {
+  _id: string;
+  email: string;
+  token: string;
+}
+
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [user, setUser] = useState<UserData | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
+    const savedUser = localStorage.getItem('marketUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
     fetchProducts();
   }, [searchTerm]);
+
+  useEffect(() => {
+    if (user) {
+      fetchFavorites();
+    } else {
+      setFavorites([]);
+    }
+  }, [user]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -33,9 +60,15 @@ const App: React.FC = () => {
       if (searchTerm) params.search = searchTerm;
       
       const res = await axios.get(`${API_BASE_URL}/products`, { params });
-      // Sort products to show highest discount first
       const sorted = res.data.sort((a: any, b: any) => (b.discountRate || 0) - (a.discountRate || 0));
       setProducts(sorted);
+      
+      if (res.data.length > 0) {
+        const latest = res.data.reduce((prev: any, current: any) => {
+          return (new Date(prev.updatedAt) > new Date(current.updatedAt)) ? prev : current;
+        });
+        setLastUpdated(new Date(latest.updatedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -43,8 +76,105 @@ const App: React.FC = () => {
     }
   };
 
+  const fetchFavorites = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/favorites`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      setFavorites(res.data.map((f: any) => f.product._id));
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    }
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    try {
+      const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
+      const res = await axios.post(`${API_BASE_URL}${endpoint}`, { email, password });
+      localStorage.setItem('marketUser', JSON.stringify(res.data));
+      setUser(res.data);
+      setShowAuthModal(false);
+      setEmail('');
+      setPassword('');
+    } catch (error: any) {
+      setAuthError(error.response?.data?.message || 'Bir hata oluştu.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('marketUser');
+    setUser(null);
+  };
+
+  const toggleFavorite = async (productId: string) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${API_BASE_URL}/favorites`, 
+        { productId },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      
+      if (res.data.action === 'added') {
+        setFavorites([...favorites, productId]);
+      } else {
+        setFavorites(favorites.filter(id => id !== productId));
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
   return (
     <div className="app-wrapper">
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass animate-fade">
+            <button className="modal-close" onClick={() => setShowAuthModal(false)}>
+              <X size={24} />
+            </button>
+            <h2>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Favorilerinizi kaydetmek için oturum açın.
+            </p>
+            {authError && <div className="auth-error">{authError}</div>}
+            <form onSubmit={handleAuth}>
+              <input 
+                type="email" 
+                placeholder="E-posta" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+              <input 
+                type="password" 
+                placeholder="Şifre" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+              />
+              <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                {authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}
+              </button>
+            </form>
+            <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem' }}>
+              {authMode === 'login' ? (
+                <span>Hesabınız yok mu? <a href="#" onClick={() => setAuthMode('register')}>Kayıt Ol</a></span>
+              ) : (
+                <span>Zaten hesabınız var mı? <a href="#" onClick={() => setAuthMode('login')}>Giriş Yap</a></span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="navbar">
         <div className="container nav-content">
@@ -68,11 +198,19 @@ const App: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <button style={{ background: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Heart size={20} />
-              <span className="hide-mobile">Favoriler</span>
-            </button>
-            <button className="btn-primary">Giriş Yap</button>
+            {user ? (
+              <div className="user-profile">
+                <div className="user-info hide-mobile">
+                  <User size={18} />
+                  <span>{user.email.split('@')[0]}</span>
+                </div>
+                <button onClick={handleLogout} className="logout-btn" title="Çıkış Yap">
+                  <LogOut size={20} />
+                </button>
+              </div>
+            ) : (
+              <button className="btn-primary" onClick={() => setShowAuthModal(true)}>Giriş Yap</button>
+            )}
           </div>
         </div>
       </nav>
@@ -104,8 +242,15 @@ const App: React.FC = () => {
             <h2 style={{ fontSize: '2.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>BİM İndirim Kataloğu</h2>
             <p style={{ color: 'var(--text-muted)' }}>Şu an yayında olan tüm fırsat ürünleri</p>
           </div>
-          <div className="glass" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-            <Clock size={16} /> Otomatik Güncelleniyor
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <div className="glass" style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+              <Clock size={16} /> Otomatik Güncelleniyor
+            </div>
+            {lastUpdated && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Son Güncelleme: {lastUpdated}
+              </span>
+            )}
           </div>
         </div>
 
@@ -120,6 +265,12 @@ const App: React.FC = () => {
           <div className="product-grid">
             {products.map((product) => (
               <div key={product._id} className="glass product-card">
+                <button 
+                  className={`fav-btn ${favorites.includes(product._id) ? 'active' : ''}`}
+                  onClick={() => toggleFavorite(product._id)}
+                >
+                  <Heart size={20} fill={favorites.includes(product._id) ? "var(--primary)" : "none"} />
+                </button>
                 <div className="card-image-box">
                   <img src={product.imageUrl} alt={product.name} />
                   {product.discountRate && product.discountRate > 0 && (
@@ -142,17 +293,7 @@ const App: React.FC = () => {
                       href={product.sourceUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      style={{ 
-                        width: '40px', 
-                        height: '40px', 
-                        borderRadius: '12px', 
-                        background: 'var(--surface-color)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        border: '1px solid var(--surface-border)'
-                      }}
+                      className="source-btn"
                     >
                       <ArrowRight size={20} />
                     </a>

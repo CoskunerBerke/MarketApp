@@ -5,7 +5,7 @@ import productRoutes from './routes/productRoutes';
 import authRoutes from './routes/authRoutes';
 import favoriteRoutes from './routes/favoriteRoutes';
 import categoryRoutes from './routes/categoryRoutes';
-import { scrapeA101 } from './services/scraperService';
+import { scrapeSpecificMarket } from './services/scraperService';
 
 const app: Express = express();
 
@@ -25,12 +25,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/categories', categoryRoutes);
 
-app.post('/api/scrape/a101', async (req, res) => {
+// Health check for keep-alive pings
+app.get('/api/system/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Manual/External scrape trigger
+app.post('/api/scrape/bim', async (req, res) => {
   try {
-    scrapeA101();
-    res.json({ message: 'A101 scraping job started' });
+    scrapeSpecificMarket('BİM'); // Run in background
+    res.json({ message: 'BİM tarama işlemi arka planda başlatıldı.' });
   } catch (error) {
-    res.status(500).json({ message: 'Failed to start scraping job' });
+    res.status(500).json({ message: 'Tarama başlatılırken bir hata oluştu.' });
   }
 });
 

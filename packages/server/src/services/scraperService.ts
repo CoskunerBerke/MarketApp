@@ -31,13 +31,21 @@ const getSafeUrl = (targetUrl: string) => {
   return `https://www.google.com/url?q=${encodeURIComponent(targetUrl)}`;
 };
 
+let isScraping = false;
+
 export const scrapeSpecificMarket = async (marketName: string) => {
+  if (isScraping) {
+    console.log(`${marketName} scraping already in progress, skipping...`);
+    return;
+  }
+
   try {
+    isScraping = true;
     await initMarketsAndCategories();
     let market = await Market.findOne({ name: marketName });
     if (!market) return;
 
-    await Product.deleteMany({}); // Clear everything for a fresh BİM start as requested
+    const scrapeStartTime = new Date();
     let gida = await Category.findOne({ slug: 'gida' });
 
     if (marketName === 'BİM') {
@@ -48,49 +56,87 @@ export const scrapeSpecificMarket = async (marketName: string) => {
         const $home = cheerio.load(homeRes.data);
         const dateKeys: string[] = [];
         
-        // Find AktuelTarihKey values from the "İndirim" and "Aktüel" sections
-        $home('a[href*="Bim_AktuelTarihKey="]').each((_, el) => {
-          const href = $home(el).attr('href');
-          const match = href?.match(/Bim_AktuelTarihKey=(\d+)/);
-          if (match && !dateKeys.includes(match[1])) {
-            dateKeys.push(match[1]);
-          }
+        // 1. Headerdaki "Ürünler" menüsünden sadece "İNDİRİM" sütunundaki anahtarları topla
+        $home('.aktuelsubmenu table tr').each((_, tr) => {
+          const td = $home(tr).find('td').eq(1);
+          const links = td.find('a[href*="Bim_AktuelTarihKey="]');
+          
+          links.each((_, el) => {
+            const href = $home(el).attr('href');
+            const match = href?.match(/Bim_AktuelTarihKey=(\d+)/);
+            if (match && !dateKeys.includes(match[1])) {
+              dateKeys.push(match[1]);
+            }
+          });
         });
 
-        if (dateKeys.length === 0) dateKeys.push(''); // Fallback to main page
-
-        for (const key of dateKeys) {
-          const url = `https://www.bim.com.tr/${key ? `?Bim_AktuelTarihKey=${key}` : ''}`;
-          const response = await axios.get(url, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' }
+        // 2. Fallback
+        if (dateKeys.length === 0) {
+          const indirimIndex = $home('.tabArea .tabButtonArea .gButton').toArray().findIndex(el => $home(el).text().includes('İNDİRİM'));
+          const areaIndex = indirimIndex !== -1 ? (indirimIndex * 2) + 1 : 3;
+          $home(`.subButtonArea-${areaIndex} a[href*="Bim_AktuelTarihKey="]`).each((_, el) => {
+            const href = $home(el).attr('href');
+            const match = href?.match(/Bim_AktuelTarihKey=(\d+)/);
+            if (match && !dateKeys.includes(match[1])) {
+              dateKeys.push(match[1]);
+            }
           });
-          const $ = cheerio.load(response.data);
-          
-          const products = $('.product').toArray();
-          for (const el of products) {
-            const subTitle = $(el).find('.subTitle').text().trim();
-            const title = $(el).find('.title').text().trim();
-            const details = $(el).find('.gramajadet').text().trim();
-            const fullName = `${subTitle} ${title} ${details}`.trim();
+        }
+
+        console.log(`BİM (Sadece İndirim): ${dateKeys.length} tarih anahtarı bulundu. İşlem başlıyor...`);
+
+        if (dateKeys.length === 0) {
+           console.log('BİM İndirim anahtarları bulunamadı.');
+           isScraping = false;
+           return; 
+        }
+
+        let totalSuccessCount = 0;
+        for (const key of dateKeys) {
+          try {
+            const url = `https://www.bim.com.tr/?Bim_AktuelTarihKey=${key}`;
+            const response = await axios.get(url, {
+              headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': 'https://www.bim.com.tr/',
+                'Cache-Control': 'no-cache'
+              },
+              timeout: 15000
+            });
+            const $ = cheerio.load(response.data);
             
-            // Prices
-            const oldPriceText = $(el).find('.CountButton.strikethrough .text.quantify').text().trim().replace(',', '.');
-            const priceWhole = $(el).find('.gButton.triangle .text.quantify').text().trim().replace(',', '');
-            const priceDecimal = $(el).find('.gButton.triangle .kusurArea .number').text().trim();
-            const discountText = $(el).find('.DiscountButton').text().trim().replace('%', '').trim();
-
-            const price = parseFloat(`${priceWhole}.${priceDecimal}`);
-            const oldPrice = oldPriceText ? parseFloat(oldPriceText) : null;
-            const discountRate = discountText ? parseInt(discountText) : (oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
-
-            const imgPath = $(el).find('.image img').attr('src') || $(el).find('img').attr('src');
-            if (!imgPath) continue;
-            const imageUrl = imgPath.startsWith('http') ? imgPath : 'https://www.bim.com.tr' + imgPath;
+            const products = $('.product').toArray();
+            console.log(`- ${key}: ${products.length} ürün bulundu.`);
             
-            const originalSourceUrl = $(el).find('a').attr('href');
-            const fullSourceUrl = originalSourceUrl?.startsWith('http') ? originalSourceUrl : 'https://www.bim.com.tr' + (originalSourceUrl || '');
+            for (const el of products) {
+              if ($(el).hasClass('justImage')) continue;
 
-            if (fullName && price) {
+              const subTitle = $(el).find('.subTitle').text().trim();
+              const title = $(el).find('.title').text().trim();
+              const details = $(el).find('.gramajadet').text().trim();
+              const fullName = `${subTitle} ${title} ${details}`.trim();
+              
+              // Prices
+              const oldPriceText = $(el).find('.CountButton.strikethrough .text.quantify').text().trim().replace(/\./g, '').replace(',', '.');
+              const priceWhole = $(el).find('.gButton.triangle .text.quantify').text().trim().replace(/\./g, '').replace(',', '');
+              const priceDecimal = $(el).find('.gButton.triangle .kusurArea .number').text().trim();
+              const discountText = $(el).find('.DiscountButton').text().trim().replace('%', '').trim();
+
+              const price = parseFloat(`${priceWhole}.${priceDecimal}`);
+              const oldPrice = oldPriceText ? parseFloat(oldPriceText) : null;
+              const discountRate = discountText ? parseInt(discountText) : (oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0);
+
+              // Lazy loaded images use xsrc
+              const imgPath = $(el).find('.image img').attr('xsrc') || $(el).find('.image img').attr('src') || $(el).find('img').attr('xsrc') || $(el).find('img').attr('src');
+              
+              if (!fullName || isNaN(price) || !imgPath) continue;
+
+              const imageUrl = imgPath.startsWith('http') ? imgPath : 'https://www.bim.com.tr' + imgPath;
+              const originalSourceUrl = $(el).find('a').attr('href');
+              const fullSourceUrl = originalSourceUrl?.startsWith('http') ? originalSourceUrl : 'https://www.bim.com.tr' + (originalSourceUrl || '');
+
               await Product.findOneAndUpdate(
                 { name: fullName, marketId: market._id },
                 { 
@@ -98,7 +144,7 @@ export const scrapeSpecificMarket = async (marketName: string) => {
                     name: fullName, 
                     marketId: market._id, 
                     price, 
-                    oldPrice: oldPrice || price, 
+                    oldPrice: oldPrice || price,
                     discountRate,
                     imageUrl, 
                     sourceUrl: getSafeUrl(fullSourceUrl), 
@@ -109,17 +155,35 @@ export const scrapeSpecificMarket = async (marketName: string) => {
                 },
                 { upsert: true }
               );
+              totalSuccessCount++;
             }
+            // Anti-throttling delay (500ms - 1500ms arası rastgele)
+            const randomDelay = Math.floor(Math.random() * 1000) + 500;
+            await new Promise(resolve => setTimeout(resolve, randomDelay));
+          } catch (err: any) {
+            console.error(`- ${key} anahtarında hata oluştu:`, err.message);
           }
         }
-        return;
-      } catch (err) { console.error('BİM fail:', err); }
-    }
 
-    // Removed other markets to focus only on BİM
+        // Son aşama: Bu tarama sırasında en az 5 ürün güncellendiyse (başarılıysa), eski ürünleri sil
+        if (totalSuccessCount >= 5) {
+          const deletedResult = await Product.deleteMany({
+            marketId: market._id,
+            updatedAt: { $lt: scrapeStartTime }
+          });
+          console.log(`BİM Tarama Tamamlandı. ${deletedResult.deletedCount} eski ürün silindi.`);
+        } else {
+          console.log(`BİM Tarama yetersiz ürün buldu (${totalSuccessCount}), silme işlemi atlandı.`);
+        }
+
+      } catch (err) { console.error('BİM ana sayfa hatası:', err); }
+    }
   } catch (error) { console.error(`Error in ${marketName}:`, error); }
+  finally {
+    isScraping = false;
+  }
 };
 
-export const scrapeA101 = async () => {
+export const triggerBimScrape = async () => {
   await scrapeSpecificMarket('BİM');
 };

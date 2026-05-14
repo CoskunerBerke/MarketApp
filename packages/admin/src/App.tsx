@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './index.css';
 
-const api = axios.create({ baseURL: 'https://market-backend-oozv.onrender.com/api' });
+const api = axios.create({ 
+  baseURL: window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000/api' 
+    : 'https://market-backend-oozv.onrender.com/api' 
+});
 
 const Sidebar = () => {
   const location = useLocation();
@@ -127,6 +131,7 @@ const Dashboard = () => {
         <table>
           <thead>
             <tr>
+              <th>Görsel</th>
               <th>Market</th>
               <th>Ürün Adı</th>
               <th>Fiyat</th>
@@ -137,9 +142,25 @@ const Dashboard = () => {
           <tbody>
             {products.map(p => (
               <tr key={p._id}>
+                <td>
+                  <img 
+                    src={p.imageUrl} 
+                    alt={p.name} 
+                    style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '4px', background: '#f5f5f5' }} 
+                  />
+                </td>
                 <td>{p.marketId?.name}</td>
                 <td>{p.name}</td>
-                <td>{p.price} ₺</td>
+                <td>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {p.oldPrice && p.oldPrice > p.price && (
+                      <span style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: '#999' }}>
+                        {p.oldPrice} ₺
+                      </span>
+                    )}
+                    <span style={{ fontWeight: 'bold' }}>{p.price} ₺</span>
+                  </div>
+                </td>
                 <td>
                   {p.discountRate ? (
                     <span className="badge badge-danger">%{p.discountRate}</span>
