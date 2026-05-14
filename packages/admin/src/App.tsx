@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Store } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Store, RefreshCw, Trash2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './index.css';
@@ -10,192 +10,184 @@ const api = axios.create({
     : 'https://market-backend-oozv.onrender.com/api' 
 });
 
+// Components
+const StatCard = ({ icon: Icon, title, value, color }: any) => (
+  <div className="stat-card">
+    <div className="stat-icon" style={{ backgroundColor: `${color}20`, color }}>
+      <Icon size={24} />
+    </div>
+    <div className="stat-info">
+      <h3>{title}</h3>
+      <p>{value}</p>
+    </div>
+  </div>
+);
+
+const Dashboard = () => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, bim: 0, a101: 0 });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const { data } = await api.get('/products');
+      setProducts(data);
+      const bimCount = data.filter((p: any) => p.marketId?.name === 'BİM').length;
+      const a101Count = data.filter((p: any) => p.marketId?.name === 'A101').length;
+      setStats({ total: data.length, bim: bimCount, a101: a101Count });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleScrape = async (market: string) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      await api.post(`/scrape/${market.toLowerCase()}`);
+      setMessage({ text: `${market} tarama işlemi başlatıldı! Veriler birazdan güncellenecektir.`, type: 'success' });
+      setTimeout(fetchData, 5000); // Refresh after 5s
+    } catch (err) {
+      setMessage({ text: `${market} güncellenirken bir hata oluştu.`, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="animate-fade">
+      <div className="header">
+        <h1>Dashboard</h1>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn btn-primary" onClick={() => handleScrape('bim')}>
+            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> BİM Güncelle
+          </button>
+          <button className="btn btn-outline" onClick={() => handleScrape('a101')}>
+            <RefreshCw size={18} /> A101 Güncelle
+          </button>
+        </div>
+      </div>
+
+      {message && (
+        <div className={`card`} style={{ 
+          borderLeft: `4px solid ${message.type === 'success' ? 'var(--accent-green)' : 'var(--accent-red)'}`,
+          display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem'
+        }}>
+          {message.type === 'success' ? <CheckCircle color="var(--accent-green)" /> : <AlertCircle color="var(--accent-red)" />}
+          <span>{message.text}</span>
+        </div>
+      )}
+
+      <div className="stats-grid">
+        <StatCard icon={ShoppingCart} title="Toplam Ürün" value={stats.total} color="var(--primary)" />
+        <StatCard icon={Store} title="BİM İndirimleri" value={stats.bim} color="var(--accent-blue)" />
+        <StatCard icon={Store} title="A101 İndirimleri" value={stats.a101} color="var(--accent-green)" />
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">Son Eklenen Ürünler</h2>
+          <button className="btn btn-outline" onClick={fetchData}>Hepsini Gör</button>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Ürün</th>
+                <th>Market</th>
+                <th>Fiyat</th>
+                <th>İndirim</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.slice(0, 10).map((product) => (
+                <tr key={product._id}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <img src={product.imageUrl} alt="" className="product-img" />
+                      <span style={{ fontWeight: 500 }}>{product.name}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`badge ${product.marketId?.name === 'BİM' ? 'badge-blue' : 'badge-success'}`}>
+                      {product.marketId?.name || 'Bilinmiyor'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="price-box">
+                      <span className="old-price">₺{product.oldPrice?.toFixed(2)}</span>
+                      <span className="new-price">₺{product.price?.toFixed(2)}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span style={{ color: 'var(--accent-red)', fontWeight: 700 }}>%{product.discountRate}</span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <a href={product.sourceUrl} target="_blank" className="btn btn-outline" style={{ padding: '0.4rem' }}>
+                        <ExternalLink size={16} />
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Sidebar = () => {
   const location = useLocation();
   const isActive = (path: string) => location.pathname === path ? 'active' : '';
 
   return (
     <div className="sidebar">
-      <div className="sidebar-logo">
-        <ShoppingCart color="var(--primary-blue)" size={28} />
-        MarketAdmin
+      <div className="logo">
+        <ShoppingCart size={28} />
+        <span>Market Admin</span>
       </div>
-      <div className="sidebar-nav">
-        <Link to="/" className={`nav-item ${isActive('/')}`}>
+      <nav className="nav-links">
+        <Link to="/" className={`nav-link ${isActive('/')}`}>
           <LayoutDashboard size={20} /> Dashboard
         </Link>
-        <Link to="/products" className={`nav-item ${isActive('/products')}`}>
-          <ShoppingCart size={20} /> Ürünler
+        <Link to="/products" className={`nav-link ${isActive('/products')}`}>
+          <ShoppingCart size={20} /> Ürün Yönetimi
         </Link>
-        <Link to="/categories" className={`nav-item ${isActive('/categories')}`}>
-          <LayoutDashboard size={20} /> Kategoriler
+        <Link to="/markets" className={`nav-link ${isActive('/markets')}`}>
+          <Store size={20} /> Marketler
         </Link>
+      </nav>
+      
+      <div style={{ marginTop: 'auto', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '1rem' }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Versiyon 2.0.0</p>
+        <p style={{ fontSize: '0.875rem', fontWeight: 600 }}>Premium Pro</p>
       </div>
     </div>
   );
 };
 
-const Dashboard = () => {
-  const [stats, setStats] = useState({ markets: 0, products: 0, discounts: 0 });
-  const [products, setProducts] = useState<any[]>([]);
-  const [isScraping, setIsScraping] = useState(false);
-
-  const fetchDashboardData = async () => {
-    try {
-      const [marketsRes, productsRes] = await Promise.all([
-        api.get('/markets'),
-        api.get('/products')
-      ]);
-      
-      setProducts(productsRes.data); // Show all
-      setStats({
-        markets: marketsRes.data.length,
-        products: productsRes.data.length,
-        discounts: productsRes.data.filter((p: any) => p.discountRate > 0).length
-      });
-    } catch (error) {
-      console.error("Dashboard veri çekme hatası:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const handleScrape = async () => {
-    setIsScraping(true);
-    try {
-      await api.post('/scrape/bim');
-      alert('BİM verilerini çekme işlemi başlatıldı! Birkaç dakika içinde ürünler listelenecektir.');
-      setTimeout(fetchDashboardData, 5000); // Refresh after 5s
-    } catch (error) {
-      alert('Hata oluştu!');
-    } finally {
-      setIsScraping(false);
-    }
-  };
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>Dashboard Özeti</h2>
-        <button 
-          onClick={handleScrape}
-          disabled={isScraping}
-          style={{ 
-            background: 'var(--primary-blue)', 
-            color: 'white', 
-            padding: '10px 20px', 
-            borderRadius: '8px',
-            opacity: isScraping ? 0.7 : 1,
-            cursor: isScraping ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isScraping ? 'Veriler Çekiliyor...' : 'BİM Verilerini Güncelle'}
-        </button>
-      </div>
-      
-      <div className="dashboard-grid">
-        <div className="stat-card">
-          <div className="stat-icon">
-            <Store size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>Toplam Market</h3>
-            <p>{stats.markets}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <ShoppingCart size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>Aktif Ürünler</h3>
-            <p>{stats.products}</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon danger">
-            <ShoppingCart size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>İndirimli Ürünler</h3>
-            <p>{stats.discounts}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Görsel</th>
-              <th>Market</th>
-              <th>Ürün Adı</th>
-              <th>Fiyat</th>
-              <th>İndirim</th>
-              <th>Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map(p => (
-              <tr key={p._id}>
-                <td>
-                  <img 
-                    src={p.imageUrl} 
-                    alt={p.name} 
-                    style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '4px', background: '#f5f5f5' }} 
-                  />
-                </td>
-                <td>{p.marketId?.name}</td>
-                <td>{p.name}</td>
-                <td>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {p.oldPrice && p.oldPrice > p.price && (
-                      <span style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: '#999' }}>
-                        {p.oldPrice} ₺
-                      </span>
-                    )}
-                    <span style={{ fontWeight: 'bold' }}>{p.price} ₺</span>
-                  </div>
-                </td>
-                <td>
-                  {p.discountRate ? (
-                    <span className="badge badge-danger">%{p.discountRate}</span>
-                  ) : '-'}
-                </td>
-                <td><span className="badge badge-success">Aktif</span></td>
-              </tr>
-            ))}
-            {products.length === 0 && (
-              <tr><td colSpan={5}>Henüz ürün yok. Scraping servisini tetikleyin.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-function App() {
+const App = () => {
   return (
     <BrowserRouter>
-      <div className="app-container">
+      <div className="admin-layout">
         <Sidebar />
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/markets" element={<h2>Market Yönetimi</h2>} />
-            <Route path="/products" element={<h2>Ürün Yönetimi</h2>} />
-            <Route path="/users" element={<h2>Kullanıcı Yönetimi</h2>} />
-            <Route path="/settings" element={<h2>Ayarlar</h2>} />
+            <Route path="/products" element={<Dashboard />} />
+            <Route path="/markets" element={<Dashboard />} />
           </Routes>
         </main>
       </div>
     </BrowserRouter>
   );
-}
+};
 
 export default App;
