@@ -94,6 +94,9 @@ function App() {
   };
 
   const toggleFavorite = async (productId: string) => {
+    // DEBUG: Bu uyarıyı görüyorsan buton çalışıyor demektir.
+    console.log('toggleFavorite clicked for:', productId);
+    
     if (!user) {
       setShowAuthModal(true);
       return;
@@ -209,25 +212,25 @@ function App() {
                     }}
                     style={{ 
                       position: 'absolute', 
-                      top: '1.25rem', 
-                      right: '1.25rem', 
-                      background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.6)', 
+                      top: '1rem', 
+                      right: '1rem', 
+                      background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.7)', 
                       border: 'none', 
                       borderRadius: '50%', 
-                      width: '44px', 
-                      height: '44px', 
+                      width: '46px', 
+                      height: '46px', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center', 
                       cursor: 'pointer', 
-                      transition: 'all 0.3s ease', 
-                      backdropFilter: 'blur(10px)', 
-                      zIndex: 200, 
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+                      backdropFilter: 'blur(12px)', 
+                      zIndex: 999, // EKSTRA YÜKSEK
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                       padding: 0
                     }}
                   >
-                    <Heart size={24} color="white" fill={favorites.includes(product._id) ? "white" : "none"} />
+                    <Heart size={26} color="white" fill={favorites.includes(product._id) ? "white" : "none"} style={{ pointerEvents: 'none' }} />
                   </button>
                   <div className="img-container">
                     <img src={product.imageUrl} alt={product.name} className="product-img" />
