@@ -210,14 +210,25 @@ function App() {
                  <button 
                    onClick={() => setSelectedMarket('BİM')} 
                    className={`btn ${selectedMarket === 'BİM' ? 'btn-primary' : 'btn-outline'}`}
-                   style={{ padding: '0.5rem 1.5rem', fontWeight: 700 }}
+                   style={{ 
+                     padding: '0.5rem 1.5rem', 
+                     fontWeight: 700,
+                     borderColor: selectedMarket === 'BİM' ? undefined : 'rgba(255,255,255,0.4)',
+                     color: selectedMarket === 'BİM' ? 'white' : 'rgba(255,255,255,0.85)'
+                   }}
                  >
                    BİM
                  </button>
                  <button 
                    onClick={() => setSelectedMarket('ŞOK')} 
                    className={`btn ${selectedMarket === 'ŞOK' ? 'btn-primary' : 'btn-outline'}`}
-                   style={{ padding: '0.5rem 1.5rem', fontWeight: 700, backgroundColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'transparent', borderColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'var(--border)' }}
+                   style={{ 
+                     padding: '0.5rem 1.5rem', 
+                     fontWeight: 700, 
+                     backgroundColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'transparent', 
+                     borderColor: selectedMarket === 'ŞOK' ? '#EC2027' : 'rgba(255,255,255,0.4)', 
+                     color: selectedMarket === 'ŞOK' ? 'white' : 'rgba(255,255,255,0.85)' 
+                   }}
                  >
                    ŞOK
                  </button>

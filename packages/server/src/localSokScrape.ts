@@ -9,7 +9,7 @@ async function scrapeAndPush() {
 
   for (const page of pages) {
     const targetUrl = `https://www.sokmarket.com.tr/bunlari-kacirmayin-cms-mps53?page=${page}`;
-    console.log(`Fetching page ${page}...`);
+    console.log(`\nFetching page ${page}...`);
 
     try {
       const response = await axios.get(targetUrl, {
@@ -22,19 +22,38 @@ async function scrapeAndPush() {
       });
 
       const $ = cheerio.load(response.data);
+      
+      // Try broader selectors to catch all product cards
       const productWrappers = $('div[class*="productCardWrapper"]').toArray();
-      console.log(`  Page ${page}: ${productWrappers.length} products`);
+      console.log(`  Wrappers found: ${productWrappers.length}`);
 
       for (const el of productWrappers) {
-        const name = $(el).find('[class*="module_title"]').text().trim();
-        const priceText = $(el).find('[class*="module_price"]').first().text().trim();
+        // Try multiple selectors for title
+        let name = $(el).find('[class*="module_title"]').text().trim();
+        if (!name) name = $(el).find('[class*="title"]').text().trim();
+        
+        // Try multiple selectors for price
+        let priceText = $(el).find('[class*="module_price"]').first().text().trim();
+        if (!priceText) priceText = $(el).find('[class*="price"]').first().text().trim();
+        
         const imageUrl = $(el).find('img').attr('src');
-        const promotionText = $(el).find('[class*="module_promotionBadgeContainer"]').text().trim();
+        const promotionText = $(el).find('[class*="promotionBadge"]').text().trim();
 
-        if (!name || !priceText) continue;
+        if (!name) {
+          console.log(`  ⚠ Skipped: no title found`);
+          continue;
+        }
+        
+        if (!priceText) {
+          console.log(`  ⚠ Skipped "${name}": no price found`);
+          continue;
+        }
 
         const price = parseFloat(priceText.replace(',', '.').replace(/[^\d.]/g, ''));
-        if (isNaN(price)) continue;
+        if (isNaN(price)) {
+          console.log(`  ⚠ Skipped "${name}": invalid price "${priceText}"`);
+          continue;
+        }
 
         let promotionPrice: number | undefined = undefined;
         if (promotionText && promotionText.includes('üzeri')) {
@@ -49,22 +68,31 @@ async function scrapeAndPush() {
           name, price, oldPrice: price, promotionPrice,
           promotionText: promotionText || undefined,
           imageUrl,
-          sourceUrl: `https://www.sokmarket.com.tr/bunlari-kacirmayin-cms-mps53?page=${page}`,
+          sourceUrl: targetUrl,
         });
       }
+      console.log(`  Products collected so far: ${allProducts.length}`);
     } catch (err: any) {
       console.error(`  Page ${page} error:`, err.message);
     }
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1500));
   }
 
-  console.log(`\nTotal products scraped: ${allProducts.length}`);
+  // Deduplicate by name
+  const seen = new Set<string>();
+  const uniqueProducts = allProducts.filter(p => {
+    if (seen.has(p.name)) return false;
+    seen.add(p.name);
+    return true;
+  });
+
+  console.log(`\nTotal scraped: ${allProducts.length}, Unique: ${uniqueProducts.length}`);
   console.log('Pushing to production API...');
 
   try {
     const result = await axios.post(API_URL, {
-      products: allProducts,
+      products: uniqueProducts,
       marketName: 'ŞOK'
     }, { timeout: 60000 });
     console.log('✅', result.data.message);
