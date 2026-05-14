@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, Alert, Linking, StatusBar, SafeAreaView, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, TextInput, Alert, Linking, StatusBar, SafeAreaView, Dimensions, ScrollView, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from './src/theme';
 import { getProducts, getMarkets, getFavorites, toggleFavorite } from './src/api';
@@ -71,6 +71,18 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleShare = async (product: any) => {
+    try {
+      await Share.share({
+        message: `${product.name} BİM'de sadece ₺${product.price.toFixed(2)}! Kaçırma! ${product.sourceUrl}`,
+        url: product.sourceUrl, // iOS için
+        title: product.name
+      });
+    } catch (error: any) {
+      console.error('Paylaşım hatası:', error.message);
+    }
+  };
+
   const renderProduct = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={styles.productCard}
@@ -91,6 +103,12 @@ const HomeScreen = ({ navigation }: any) => {
             size={20} 
             color="white" 
           />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.favButton, { top: 48 }]}
+          onPress={() => handleShare(item)}
+        >
+          <Ionicons name="share-social-outline" size={18} color="white" />
         </TouchableOpacity>
       </View>
       
@@ -208,13 +226,27 @@ const ProductDetailScreen = ({ route }: any) => {
                </View>
             </View>
 
-            <TouchableOpacity 
-              style={styles.buyButton}
-              onPress={() => product.sourceUrl && Linking.openURL(product.sourceUrl)}
-            >
-              <Text style={styles.buyButtonText}>Markete Git</Text>
-              <Ionicons name="open-outline" size={20} color="white" style={{ marginLeft: 10 }} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity 
+                style={[styles.buyButton, { flex: 1 }]}
+                onPress={() => product.sourceUrl && Linking.openURL(product.sourceUrl)}
+              >
+                <Text style={styles.buyButtonText}>Markete Git</Text>
+                <Ionicons name="open-outline" size={20} color="white" style={{ marginLeft: 10 }} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.buyButton, { width: 60, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }]}
+                onPress={() => {
+                  Share.share({
+                    message: `${product.name} BİM'de sadece ₺${product.price.toFixed(2)}! Kaçırma! ${product.sourceUrl}`,
+                    url: product.sourceUrl,
+                    title: product.name
+                  });
+                }}
+              >
+                <Ionicons name="share-social" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>

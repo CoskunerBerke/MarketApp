@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ShoppingBag, Search, Tag, ExternalLink, User, LogOut, X, Heart, Mail, Lock } from 'lucide-react';
+import { ShoppingBag, Search, Tag, ExternalLink, User, LogOut, X, Heart, Mail, Lock, Share2 } from 'lucide-react';
 import './index.css';
 
 const api = axios.create({ 
@@ -112,6 +112,25 @@ function App() {
       localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (err) {
       console.error('Favori güncellenemedi');
+    }
+  };
+
+  const handleShare = async (product: Product) => {
+    const shareData = {
+      title: product.name,
+      text: `${product.name} BİM'de sadece ₺${product.price.toFixed(2)}! Kaçırma!`,
+      url: product.sourceUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+        alert('Paylaşım linki kopyalandı!');
+      }
+    } catch (err) {
+      console.error('Paylaşım hatası:', err);
     }
   };
 
@@ -245,7 +264,12 @@ function App() {
                     </div>
                     <Tag size={20} color="var(--accent-orange)" />
                   </div>
-                  <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy">Fırsatı Gör <ExternalLink size={18} /></a>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
+                    <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1 }}>Fırsatı Gör <ExternalLink size={18} /></a>
+                    <button className="btn-outline" style={{ padding: '0.75rem' }} onClick={() => handleShare(product)}>
+                      <Share2 size={20} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
