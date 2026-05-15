@@ -7,14 +7,15 @@ import Category from '../models/Category';
 const initMarketsAndCategories = async () => {
   const markets = [
     { name: 'BİM', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Bim_logo.png' },
-    { name: 'ŞOK', logoUrl: 'https://kurumsal.sokmarket.com.tr/assets/images/logo.png' }
+    { name: 'ŞOK', logoUrl: 'https://kurumsal.sokmarket.com.tr/assets/images/logo.png' },
+    { name: 'Migros', logoUrl: 'https://images.migrosone.com/sanalmarket/common/migros-logo.png' }
   ];
 
   for (const m of markets) {
     await Market.findOneAndUpdate({ name: m.name }, { $set: m }, { upsert: true });
   }
 
-  await Market.deleteMany({ name: { $nin: ['BİM', 'ŞOK'] } });
+  await Market.deleteMany({ name: { $nin: ['BİM', 'ŞOK', 'Migros'] } });
 
   const categories = [
     { name: 'Gıda', slug: 'gida' },

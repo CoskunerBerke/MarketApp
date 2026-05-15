@@ -35,7 +35,7 @@ app.post('/api/scrape/:market', async (req, res) => {
   // if (process.env.SCRAPER_API_KEY && apiKey !== process.env.SCRAPER_API_KEY) { ... }
 
   try {
-    const marketMap: Record<string, string> = { 'bim': 'BİM', 'sok': 'ŞOK' };
+    const marketMap: Record<string, string> = { 'bim': 'BİM', 'sok': 'ŞOK', 'migros': 'Migros' };
     const marketName = marketMap[market.toLowerCase()] || market.toUpperCase();
     console.log(`External trigger: Starting ${marketName} scrape...`);
     scrapeSpecificMarket(marketName);

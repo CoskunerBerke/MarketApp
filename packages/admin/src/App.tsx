@@ -28,8 +28,8 @@ const StatCard = ({ icon: Icon, title, value, color }: any) => (
 const Dashboard = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK'>('BİM');
-  const [stats, setStats] = useState({ total: 0, bim: 0, sok: 0 });
+  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK' | 'Migros'>('BİM');
+  const [stats, setStats] = useState({ total: 0, bim: 0, sok: 0, migros: 0 });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
@@ -39,7 +39,8 @@ const Dashboard = () => {
       setAllProducts(data);
       const bimCount = data.filter((p: any) => p.marketId?.name === 'BİM').length;
       const sokCount = data.filter((p: any) => p.marketId?.name === 'ŞOK').length;
-      setStats({ total: data.length, bim: bimCount, sok: sokCount });
+      const migrosCount = data.filter((p: any) => p.marketId?.name === 'Migros').length;
+      setStats({ total: data.length, bim: bimCount, sok: sokCount, migros: migrosCount });
       
       const filtered = data.filter((p: any) => p.marketId?.name === selectedMarket);
       setProducts(filtered);
@@ -80,6 +81,9 @@ const Dashboard = () => {
           <button className="btn btn-primary" style={{ backgroundColor: '#EC2027', borderColor: '#EC2027' }} onClick={() => handleScrape('sok')}>
             <RefreshCw size={18} className={loading ? 'spinner' : ''} /> ŞOK Tarat
           </button>
+          <button className="btn btn-primary" style={{ backgroundColor: '#FF6600', borderColor: '#FF6600' }} onClick={() => handleScrape('migros')}>
+            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> Migros Tarat
+          </button>
         </div>
       </div>
 
@@ -97,6 +101,7 @@ const Dashboard = () => {
         <StatCard icon={ShoppingCart} title="Toplam Ürün" value={stats.total} color="var(--primary)" />
         <StatCard icon={Store} title="BİM Ürünleri" value={stats.bim} color="var(--accent-blue)" />
         <StatCard icon={Store} title="ŞOK Ürünleri" value={stats.sok} color="#EC2027" />
+        <StatCard icon={Store} title="Migros Ürünleri" value={stats.migros} color="#FF6600" />
       </div>
 
       <div className="card">
@@ -114,6 +119,13 @@ const Dashboard = () => {
               onClick={() => setSelectedMarket('ŞOK')}
             >
               ŞOK Listesi
+            </button>
+            <button 
+              className={`btn ${selectedMarket === 'Migros' ? 'btn-primary' : 'btn-outline'}`}
+              style={selectedMarket === 'Migros' ? { backgroundColor: '#FF6600', borderColor: '#FF6600' } : {}}
+              onClick={() => setSelectedMarket('Migros')}
+            >
+              Migros Listesi
             </button>
           </div>
           <button className="btn btn-outline" onClick={fetchData}>Yenile</button>

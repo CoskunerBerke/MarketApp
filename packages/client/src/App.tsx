@@ -29,7 +29,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
-  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK'>('BİM');
+  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK' | 'Migros'>('BİM');
   
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -192,7 +192,7 @@ function App() {
       <main className="container">
         <header className="hero animate-up">
           <h1>Kaçırılmayacak İndirimler</h1>
-          <p>En güncel BİM ve ŞOK fırsatları tek bir yerde.</p>
+          <p>En güncel BİM, ŞOK ve Migros fırsatları tek bir yerde.</p>
           <div className="search-container">
             <Search className="search-icon" size={24} />
             <input type="text" className="search-input" placeholder="Ürün ara..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -241,6 +241,23 @@ function App() {
                  >
                    ŞOK
                  </button>
+                 <button 
+                   onClick={() => setSelectedMarket('Migros')} 
+                   style={{ 
+                     padding: '0.6rem 1.75rem', 
+                     fontWeight: 700, 
+                     fontSize: '0.95rem',
+                     borderRadius: '0.75rem',
+                     border: '2px solid',
+                     cursor: 'pointer',
+                     transition: 'all 0.2s ease',
+                     backgroundColor: selectedMarket === 'Migros' ? '#FF6600' : 'transparent', 
+                     borderColor: selectedMarket === 'Migros' ? '#FF6600' : 'rgba(255,255,255,0.3)', 
+                     color: selectedMarket === 'Migros' ? 'white' : 'rgba(255,255,255,0.7)' 
+                   }}
+                 >
+                   Migros
+                 </button>
                  <div style={{ width: '1px', background: 'var(--border)', margin: '0 0.5rem' }}></div>
                  <button onClick={() => { if(!user) setShowAuthModal(true); else setViewMode('favorites'); }} className={`btn ${viewMode === 'favorites' ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '0.5rem 1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                    <Heart size={18} fill={viewMode === 'favorites' ? 'white' : 'none'} />
@@ -286,7 +303,7 @@ function App() {
                     <img src={product.imageUrl} alt={product.name} className="product-img" />
                     <div className="discount-badge">%{product.discountRate || 0} İNDİRİM</div>
                   </div>
-                  <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--primary)', color: 'white' }}>
+                  <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--primary)', color: 'white' }}>
                     {product.marketId?.name || 'BİM'} İNDİRİM
                   </span>
                   <h3 className="product-name">{product.name}</h3>
@@ -299,7 +316,7 @@ function App() {
                         ₺{(product.promotionPrice || product.price)?.toFixed(2)}
                       </div>
                     </div>
-                    <Tag size={20} color={product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--accent-orange)'} />
+                    <Tag size={20} color={product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--accent-orange)'} />
                   </div>
                   {product.promotionText && (
                     <div className="promo-banner-web">
@@ -307,7 +324,7 @@ function App() {
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                    <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1, backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : 'var(--primary)' }}>Fırsatı Gör <ExternalLink size={18} /></a>
+                    <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1, backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--primary)' }}>Fırsatı Gör <ExternalLink size={18} /></a>
                     <button className="btn-outline" style={{ padding: '0.75rem' }} onClick={() => handleShare(product)}>
                       <Share2 size={20} />
                     </button>

@@ -1,4 +1,4 @@
-name: Market Veri Güncelleme (BİM + ŞOK)
+name: Market Veri Güncelleme (BİM + ŞOK + Migros)
 
 on:
   schedule:
@@ -45,17 +45,8 @@ jobs:
         if: steps.bim1.outcome == 'failure'
         id: bim2
         run: |
-          echo "Retry 1 for BIM..."
+          echo "Retry for BIM..."
           sleep 10
-          node scripts/scrape-bim.js
-        continue-on-error: true
-
-      - name: Scrape BİM (attempt 3 - final retry)
-        if: steps.bim2.outcome == 'failure'
-        id: bim3
-        run: |
-          echo "Final retry for BIM..."
-          sleep 15
           node scripts/scrape-bim.js
         continue-on-error: true
 
@@ -71,39 +62,53 @@ jobs:
         if: steps.sok1.outcome == 'failure'
         id: sok2
         run: |
-          echo "Retry 1 for SOK..."
+          echo "Retry for SOK..."
           sleep 10
           node scripts/scrape-sok.js
         continue-on-error: true
 
-      - name: Scrape ŞOK (attempt 3 - final retry)
-        if: steps.sok2.outcome == 'failure'
-        id: sok3
+      - name: Wait between markets
+        run: sleep 5
+
+      - name: Scrape Migros (attempt 1)
+        id: migros1
+        run: node scripts/scrape-migros.js
+        continue-on-error: true
+
+      - name: Scrape Migros (attempt 2 - retry)
+        if: steps.migros1.outcome == 'failure'
+        id: migros2
         run: |
-          echo "Final retry for SOK..."
-          sleep 15
-          node scripts/scrape-sok.js
+          echo "Retry for Migros..."
+          sleep 10
+          node scripts/scrape-migros.js
         continue-on-error: true
 
       - name: Check results
         run: |
           BIM_OK=false
           SOK_OK=false
+          MIGROS_OK=false
           
-          if [ "${{ steps.bim1.outcome }}" == "success" ] || [ "${{ steps.bim2.outcome }}" == "success" ] || [ "${{ steps.bim3.outcome }}" == "success" ]; then
+          if [ "${{ steps.bim1.outcome }}" == "success" ] || [ "${{ steps.bim2.outcome }}" == "success" ]; then
             BIM_OK=true
           fi
           
-          if [ "${{ steps.sok1.outcome }}" == "success" ] || [ "${{ steps.sok2.outcome }}" == "success" ] || [ "${{ steps.sok3.outcome }}" == "success" ]; then
+          if [ "${{ steps.sok1.outcome }}" == "success" ] || [ "${{ steps.sok2.outcome }}" == "success" ]; then
             SOK_OK=true
           fi
           
+          if [ "${{ steps.migros1.outcome }}" == "success" ] || [ "${{ steps.migros2.outcome }}" == "success" ]; then
+            MIGROS_OK=true
+          fi
+          
           echo "=============================="
-          echo "BİM: $([ "$BIM_OK" = true ] && echo '✅ SUCCESS' || echo '❌ FAILED')"
-          echo "ŞOK: $([ "$SOK_OK" = true ] && echo '✅ SUCCESS' || echo '❌ FAILED')"
+          echo "BİM:    $([ "$BIM_OK" = true ] && echo '✅ SUCCESS' || echo '❌ FAILED')"
+          echo "ŞOK:    $([ "$SOK_OK" = true ] && echo '✅ SUCCESS' || echo '❌ FAILED')"
+          echo "Migros: $([ "$MIGROS_OK" = true ] && echo '✅ SUCCESS' || echo '❌ FAILED')"
           echo "=============================="
           
-          if [ "$BIM_OK" = false ] && [ "$SOK_OK" = false ]; then
-            echo "CRITICAL: Both markets failed!"
+          if [ "$BIM_OK" = false ] && [ "$SOK_OK" = false ] && [ "$MIGROS_OK" = false ]; then
+            echo "CRITICAL: All markets failed!"
             exit 1
           fi
