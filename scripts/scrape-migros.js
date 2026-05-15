@@ -2,7 +2,8 @@ const axios = require('axios');
 
 const API_URL = 'https://market-backend-oozv.onrender.com/api/products/bulk';
 const MIGROS_API = 'https://www.migros.com.tr/rest/sanalmarket/products/search';
-const MAX_PAGES = 5; // İlk 5 sayfa = ~150 indirimli ürün (çok fazla çekmemek için)
+const MAX_PAGES = 15;
+const MIN_DISCOUNT = 15; // Sadece %15 ve üzeri indirimli ürünler
 
 async function fetchMigrosPage(page) {
   try {
@@ -41,7 +42,7 @@ async function scrapeAndPush() {
     console.log(`  Page ${page + 1}: ${products.length} products`);
 
     for (const p of products) {
-      if (!p.discountRate || p.discountRate <= 0) continue;
+      if (!p.discountRate || p.discountRate < MIN_DISCOUNT) continue;
       if (!p.name || !p.shownPrice) continue;
 
       const price = p.shownPrice / 100;
