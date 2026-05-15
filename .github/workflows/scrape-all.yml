@@ -1,0 +1,38 @@
+name: Market Veri Güncelleme (BİM + ŞOK)
+
+on:
+  schedule:
+    # Türkiye saati (UTC+3): 07:00, 12:00, 17:00, 22:00
+    - cron: '0 4 * * *'
+    - cron: '0 9 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 19 * * *'
+  workflow_dispatch: # Manuel tetikleme butonu (GitHub Actions sayfasından)
+
+jobs:
+  scrape-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install axios cheerio
+
+      - name: Scrape BİM and upload
+        run: node scripts/scrape-bim.js
+        continue-on-error: true
+
+      - name: Wait between scrapes
+        run: sleep 5
+
+      - name: Scrape ŞOK and upload
+        run: node scripts/scrape-sok.js
+        continue-on-error: true
