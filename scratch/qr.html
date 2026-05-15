@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MarketFırsat QR</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <style>
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #0a0a1a; font-family: sans-serif; flex-direction: column; gap: 1.5rem; }
+    canvas { border-radius: 1rem; }
+    h2 { color: white; margin: 0; }
+    p { color: #888; margin: 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h2>📱 MarketFırsat</h2>
+  <canvas id="qr"></canvas>
+  <p>Telefonunla tara → siteyi aç</p>
+  <script>
+    QRCode.toCanvas(document.getElementById('qr'), 'https://client-five-chi-86.vercel.app', { width: 300, margin: 2, color: { dark: '#000', light: '#fff' } });
+  </script>
+</body>
+</html>

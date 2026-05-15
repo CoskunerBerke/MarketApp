@@ -20,7 +20,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
-  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK'>('BİM');
+  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK' | 'Migros'>('BİM');
 
   const fetchData = async () => {
     try {
@@ -110,7 +110,7 @@ const HomeScreen = ({ navigation }: any) => {
       </View>
       
       <View style={styles.productInfo}>
-        <Text style={[styles.marketLabel, item.marketId?.name === 'ŞOK' && { color: '#EC2027' }]}>
+        <Text style={[styles.marketLabel, item.marketId?.name === 'ŞOK' && { color: '#EC2027' }, item.marketId?.name === 'Migros' && { color: '#FF6600' }]}>
           {item.marketId?.name} FIRSATI
         </Text>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
@@ -123,7 +123,7 @@ const HomeScreen = ({ navigation }: any) => {
               ₺{(item.promotionPrice || item.price)?.toFixed(2)}
             </Text>
           </View>
-          <View style={[styles.arrowIcon, item.marketId?.name === 'ŞOK' && { backgroundColor: '#EC2027' }]}>
+          <View style={[styles.arrowIcon, item.marketId?.name === 'ŞOK' && { backgroundColor: '#EC2027' }, item.marketId?.name === 'Migros' && { backgroundColor: '#FF6600' }]}>
              <Ionicons name="chevron-forward" size={16} color="white" />
           </View>
         </View>
@@ -173,6 +173,12 @@ const HomeScreen = ({ navigation }: any) => {
           onPress={() => { setSelectedMarket('ŞOK'); setViewMode('all'); }}
         >
           <Text style={[styles.tabText, selectedMarket === 'ŞOK' && styles.tabTextActive]}>ŞOK</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, selectedMarket === 'Migros' && { backgroundColor: '#FF6600', borderColor: '#FF6600' }]}
+          onPress={() => { setSelectedMarket('Migros'); setViewMode('all'); }}
+        >
+          <Text style={[styles.tabText, selectedMarket === 'Migros' && styles.tabTextActive]}>Migros</Text>
         </TouchableOpacity>
         <View style={{ width: 1, backgroundColor: theme.colors.border, marginHorizontal: 4 }} />
         <TouchableOpacity 
@@ -225,7 +231,7 @@ const ProductDetailScreen = ({ route }: any) => {
         <View style={styles.detailCard}>
           <Image source={{ uri: product.imageUrl }} style={styles.detailImage} />
           <View style={styles.detailInfo}>
-            <Text style={[styles.detailMarket, product.marketId?.name === 'ŞOK' && { color: '#EC2027' }]}>
+            <Text style={[styles.detailMarket, product.marketId?.name === 'ŞOK' && { color: '#EC2027' }, product.marketId?.name === 'Migros' && { color: '#FF6600' }]}>
               {product.marketId?.name} AKTÜEL ÜRÜN
             </Text>
             <Text style={styles.detailName}>{product.name}</Text>
