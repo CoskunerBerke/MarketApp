@@ -1,4 +1,10 @@
+require('dotenv').config();
 const axios = require('axios');
+
+const scraperApiKey = process.env.SCRAPER_API_KEY;
+if (!scraperApiKey) {
+  throw new Error("CRITICAL: SCRAPER_API_KEY environment variable is missing!");
+}
 
 const API_URL = 'https://market-backend-oozv.onrender.com/api/products/bulk';
 const MIGROS_API = 'https://www.migros.com.tr/rest/sanalmarket/products/search';
@@ -88,7 +94,12 @@ async function scrapeAndPush() {
   const result = await axios.post(API_URL, {
     products: uniqueProducts,
     marketName: 'Migros'
-  }, { timeout: 120000 });
+  }, { 
+    timeout: 120000,
+    headers: {
+      'x-api-key': scraperApiKey
+    }
+  });
 
   console.log('Done:', result.data.message);
 }

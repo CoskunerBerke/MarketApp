@@ -2,6 +2,8 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
+import { validateBody, loginSchema } from '../middleware/validationMiddleware';
+import { auditLogAction } from '../middleware/auditLogger';
 
 const router = express.Router();
 
@@ -45,7 +47,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', validateBody(loginSchema), async (req, res) => {
   const { email, password } = req.body;
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -64,13 +66,18 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user) {
+      auditLogAction(req, 'Login Attempt', 'failure', `Email not found: ${normalizedEmail}`);
       return res.status(401).json({ message: 'Bu e-posta adresiyle kayıtlı bir kullanıcı bulunamadı.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
+      auditLogAction(req, 'Login Attempt', 'failure', `Invalid password for: ${normalizedEmail}`);
       return res.status(401).json({ message: 'Girdiğiniz şifre hatalı, lütfen tekrar deneyin.' });
     }
+
+    const actionName = user.role === 'admin' ? 'Admin Login Success' : 'User Login Success';
+    auditLogAction(req, actionName, 'success');
 
     res.json({
       _id: user.id,
@@ -79,6 +86,7 @@ router.post('/login', async (req, res) => {
       token: generateToken(user.id),
     });
   } catch (error) {
+    auditLogAction(req, 'Login Failed with Server Error', 'failure');
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 });
