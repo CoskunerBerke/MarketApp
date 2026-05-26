@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/scripts/seedAdmin.js && node dist/index.js",
     "seed:admin": "ts-node src/scripts/seedAdmin.ts"
   },
   "keywords": [],
