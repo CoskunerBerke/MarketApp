@@ -9,7 +9,6 @@ dotenv.config();
 const seedAdmin = async () => {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
-  const name = process.env.ADMIN_NAME || 'Admin';
 
   if (!email || !password) {
     console.error('[SEED ERROR] ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required.');
@@ -20,16 +19,19 @@ const seedAdmin = async () => {
     await connectDB();
 
     const normalizedEmail = email.toLowerCase().trim();
-    const existingAdmin = await User.findOne({ email: normalizedEmail });
-
-    if (existingAdmin) {
-      console.log(`[SEED] Admin user (${normalizedEmail}) already exists. No action taken.`);
-      await mongoose.connection.close();
-      process.exit(0);
-    }
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
+
+    if (existingUser) {
+      existingUser.role = 'admin';
+      existingUser.passwordHash = passwordHash;
+      await existingUser.save();
+      console.log(`[SEED SUCCESS] Existing user (${normalizedEmail}) promoted to Admin and password updated.`);
+      await mongoose.connection.close();
+      process.exit(0);
+    }
 
     await User.create({
       email: normalizedEmail,
