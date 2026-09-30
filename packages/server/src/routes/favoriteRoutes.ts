@@ -1,6 +1,7 @@
 import express from 'express';
 import Favorite from '../models/Favorite';
 import { protect } from '../middleware/authMiddleware';
+import { validateBody, favoriteSchema } from '../middleware/validationMiddleware';
 
 const router = express.Router();
 
@@ -11,12 +12,14 @@ router.route('/')
         path: 'product',
         populate: { path: 'marketId', select: 'name logoUrl' }
       });
-      res.json(favorites);
+      // Scrapes delete expired products; skip favourites that now point to nothing
+      // (clients read favorite.product._id).
+      res.json(favorites.filter((f) => f.product));
     } catch (error) {
       res.status(500).json({ message: 'Server error' });
     }
   })
-  .post(protect, async (req: any, res) => {
+  .post(protect, validateBody(favoriteSchema), async (req: any, res) => {
     try {
       const { productId } = req.body;
       const alreadyFavorited = await Favorite.findOne({ user: req.user._id, product: productId });

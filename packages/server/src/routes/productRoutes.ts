@@ -1,8 +1,10 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Product from '../models/Product';
 import { protect, admin } from '../middleware/authMiddleware';
 import { validateBody, productSchema } from '../middleware/validationMiddleware';
 import { auditLogAction } from '../middleware/auditLogger';
+import { escapeRegex } from '../utils/security';
 
 const router = express.Router();
 
@@ -10,11 +12,21 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { marketId, categoryId, search } = req.query;
-    
+
+    for (const id of [marketId, categoryId]) {
+      if (id !== undefined && (typeof id !== 'string' || !mongoose.isValidObjectId(id))) {
+        return res.status(400).json({ message: 'Geçersiz market veya kategori ID.' });
+      }
+    }
+    if (search !== undefined && (typeof search !== 'string' || search.length > 100)) {
+      return res.status(400).json({ message: 'Geçersiz arama ifadesi.' });
+    }
+
     const query: any = {};
     if (marketId) query.marketId = marketId;
     if (categoryId) query.categoryId = categoryId;
-    if (search) query.name = { $regex: search, $options: 'i' };
+    // Search is literal text: escaping prevents invalid-regex errors and ReDoS patterns.
+    if (search) query.name = { $regex: escapeRegex(search), $options: 'i' };
 
     const products = await Product.find(query).populate('marketId', 'name logoUrl');
     res.json(products);

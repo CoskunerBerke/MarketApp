@@ -1,4 +1,4 @@
-import express, { Express } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -14,6 +14,13 @@ import { auditLogAction } from './middleware/auditLogger';
 
 const app: Express = express();
 
+// Behind a reverse proxy (e.g. Render) set TRUST_PROXY to the number of proxy hops (usually 1),
+// otherwise every request appears to come from the proxy and all clients share one rate-limit bucket.
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy) {
+  app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy === 'true' ? true : trustProxy);
+}
+
 // 1. Helmet for Security Headers
 app.use(helmet());
 
@@ -28,11 +35,9 @@ const corsOptions: cors.CorsOptions = {
     const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
     const isLocalhost = origin && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'));
     
-    if (!origin || whitelist.includes(origin) || (isDevelopment && isLocalhost)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS blocked: Origin not allowed.'));
-    }
+    // Disallowed origins get no CORS headers (the browser blocks the response)
+    // instead of an error that would turn into a 500 with a stack trace.
+    callback(null, Boolean(!origin || whitelist.includes(origin) || (isDevelopment && isLocalhost)));
   },
   credentials: true
 };
@@ -101,12 +106,20 @@ app.get('/api/system/health', (req, res) => {
 });
 
 // Scrape Route - Protected by Scraper API Key or Admin JWT
+// Only BİM and ŞOK have a server-side scraper; Migros is updated by scripts/scrape-migros.js (GitHub Actions).
+const serverScrapers: Record<string, string> = { 'bim': 'BİM', 'sok': 'ŞOK' };
+
 app.post('/api/scrape/:market', scrapeBulkLimiter, scraperApiKeyOrAdmin, async (req, res) => {
   const market = req.params.market as string;
-  
+  const marketName = serverScrapers[market.toLowerCase()];
+
+  if (!marketName) {
+    return res.status(400).json({
+      message: 'Bu market için sunucu tarafında tarama yok. Migros verisi zamanlanmış GitHub Actions betiğiyle güncellenir.',
+    });
+  }
+
   try {
-    const marketMap: Record<string, string> = { 'bim': 'BİM', 'sok': 'ŞOK', 'migros': 'Migros' };
-    const marketName = marketMap[market.toLowerCase()] || market.toUpperCase();
     console.log(`External trigger: Starting ${marketName} scrape...`);
     
     auditLogAction(req, `Scrape Triggered for ${marketName}`, 'success');
@@ -154,7 +167,7 @@ app.post('/api/products/bulk', scrapeBulkLimiter, scraperApiKeyOrAdmin, validate
     res.json({ message: `${count} products saved for ${marketName}` });
   } catch (err: any) {
     auditLogAction(req, `Bulk Products Upload Failed for ${req.body.marketName}`, 'failure', err.message);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Toplu ürün yükleme başarısız.' });
   }
 });
 
@@ -195,6 +208,16 @@ app.get('/api/debug/sok', protect, admin, async (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('Market App API is running...');
+});
+
+// Final error handler: JSON response without stack traces or internal messages
+// (e.g. malformed JSON bodies, payloads over the size limit).
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  const status = typeof err?.status === 'number' && err.status >= 400 && err.status < 500 ? err.status : 500;
+  if (status === 500) {
+    console.error(`Unhandled error on ${req.method} ${req.originalUrl}:`, err?.message || err);
+  }
+  res.status(status).json({ message: status === 500 ? 'Sunucu hatası.' : 'Geçersiz istek.' });
 });
 
 export default app;

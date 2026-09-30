@@ -1,8 +1,7 @@
+// Load .env before app.ts runs: it reads CLIENT_ORIGIN, ADMIN_ORIGIN and TRUST_PROXY at import time.
+import 'dotenv/config';
 import app from './app';
-import dotenv from 'dotenv';
 import connectDB from './config/db';
-
-dotenv.config();
 
 const requiredEnv = [
   'MONGODB_URI',
