@@ -59,6 +59,14 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 reset-code attempts per 15 minutes
+  message: { message: 'Çok fazla deneme yapıldı. Lütfen 15 dakika sonra tekrar deneyin.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const scrapeBulkLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 20, // limit each IP to 20 scrape/bulk requests per minute
@@ -79,6 +87,7 @@ app.use((req, res, next) => {
 // Route-specific Limiters
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth/forgot-password', loginLimiter);
+app.use('/api/auth/reset-password', resetPasswordLimiter);
 
 // Routes
 app.use('/api/markets', marketRoutes);
