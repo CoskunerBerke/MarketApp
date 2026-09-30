@@ -8,3 +8,14 @@ packages/**/dist
 packages/server/data
 .vscode
 .idea
+
+# Saved third-party pages and scraper dumps (debugging only, never commit)
+/*.html
+scratch/*.html
+!scratch/qr.html
+scratch/*.json
+packages/server/src/*.html
+packages/server/next_*
+
+# Test output
+coverage
