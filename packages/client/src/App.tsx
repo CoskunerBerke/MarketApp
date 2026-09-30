@@ -243,7 +243,7 @@ function App() {
         ) : (
           <section>
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-               <div style={{ display: 'flex', gap: '0.75rem' }}>
+               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                  <button 
                    onClick={() => setSelectedMarket('BİM')} 
                    style={{ 
@@ -305,69 +305,74 @@ function App() {
             </div>
 
             <div className="product-grid">
-              {filteredProducts.map((product, index) => (
-                <div key={product._id} className="product-card animate-up" style={{ animationDelay: `${index * 0.05}s`, position: 'relative', overflow: 'hidden' }}>
-                  <button 
-                    className="fav-btn-elite" 
-                    onClick={(e) => { 
-                      e.preventDefault(); 
-                      e.stopPropagation(); 
-                      toggleFavorite(product._id); 
-                    }}
-                    style={{ 
-                      position: 'absolute', 
-                      top: '1rem', 
-                      right: '1rem', 
-                      background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.7)', 
-                      border: 'none', 
-                      borderRadius: '50%', 
-                      width: '40px', 
-                      height: '40px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      cursor: 'pointer', 
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
-                      backdropFilter: 'blur(12px)', 
-                      zIndex: 10,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                      padding: 0
-                    }}
-                  >
-                    <Heart size={20} color="white" fill={favorites.includes(product._id) ? "white" : "none"} style={{ pointerEvents: 'none' }} />
-                  </button>
-                  <div className="img-container">
-                    <img src={product.imageUrl} alt={product.name} className="product-img" />
-                    <div className="discount-badge">%{product.discountRate || 0} İNDİRİM</div>
-                  </div>
-                  <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--primary)', color: 'white' }}>
-                    {product.marketId?.name || 'BİM'} İNDİRİM
-                  </span>
-                  <h3 className="product-name">{product.name}</h3>
-                  <div className="price-section">
-                    <div className="price-box">
-                      <span className="old-price">
-                        ₺{(product.promotionPrice ? product.price : product.oldPrice)?.toFixed(2)}
-                      </span>
-                      <div className="new-price">
-                        ₺{(product.promotionPrice || product.price)?.toFixed(2)}
-                      </div>
-                    </div>
-                    <Tag size={20} color={product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--accent-orange)'} />
-                  </div>
-                  {product.promotionText && (
-                    <div className="promo-banner-web">
-                      {product.promotionText}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                    <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1, backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--primary)' }}>Fırsatı Gör <ExternalLink size={18} /></a>
-                    <button className="btn-outline" style={{ padding: '0.75rem' }} onClick={() => handleShare(product)}>
-                      <Share2 size={20} />
+              {filteredProducts.map((product, index) => {
+                const currentPrice = product.promotionPrice || product.price;
+                const previousPrice = product.promotionPrice ? product.price : product.oldPrice;
+                return (
+                  <div key={product._id} className="product-card animate-up" style={{ animationDelay: `${index * 0.05}s`, position: 'relative', overflow: 'hidden' }}>
+                    <button 
+                      className="fav-btn-elite" 
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        toggleFavorite(product._id); 
+                      }}
+                      style={{ 
+                        position: 'absolute', 
+                        top: '1rem', 
+                        right: '1rem', 
+                        background: favorites.includes(product._id) ? 'var(--accent-red)' : 'rgba(0,0,0,0.7)', 
+                        border: 'none', 
+                        borderRadius: '50%', 
+                        width: '40px', 
+                        height: '40px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        cursor: 'pointer', 
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', 
+                        backdropFilter: 'blur(12px)', 
+                        zIndex: 10,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                        padding: 0
+                      }}
+                    >
+                      <Heart size={20} color="white" fill={favorites.includes(product._id) ? "white" : "none"} style={{ pointerEvents: 'none' }} />
                     </button>
+                    <div className="img-container">
+                      <img src={product.imageUrl} alt={product.name} className="product-img" />
+                      {product.discountRate ? <div className="discount-badge">%{product.discountRate} İNDİRİM</div> : null}
+                    </div>
+                    <span className="market-badge" style={{ backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--primary)', color: 'white' }}>
+                      {product.marketId?.name || 'BİM'} İNDİRİM
+                    </span>
+                    <h3 className="product-name">{product.name}</h3>
+                    <div className="price-section">
+                      <div className="price-box">
+                        {/* Only strike through a price that is actually higher (ŞOK items often have none). */}
+                        <span className="old-price" style={{ visibility: previousPrice > currentPrice ? 'visible' : 'hidden' }}>
+                          ₺{previousPrice?.toFixed(2)}
+                        </span>
+                        <div className="new-price">
+                          ₺{currentPrice?.toFixed(2)}
+                        </div>
+                      </div>
+                      <Tag size={20} color={product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--accent-orange)'} />
+                    </div>
+                    {product.promotionText && (
+                      <div className="promo-banner-web">
+                        {product.promotionText}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="btn-buy" style={{ flex: 1, backgroundColor: product.marketId?.name === 'ŞOK' ? '#EC2027' : product.marketId?.name === 'Migros' ? '#FF6600' : 'var(--primary)' }}>Fırsatı Gör <ExternalLink size={18} /></a>
+                      <button className="btn-outline" style={{ padding: '0.75rem' }} onClick={() => handleShare(product)}>
+                        <Share2 size={20} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {filteredProducts.length === 0 && (
