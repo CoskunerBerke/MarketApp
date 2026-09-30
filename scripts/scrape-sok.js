@@ -1,13 +1,15 @@
 require('dotenv').config();
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { parsePrice, parsePromotionPrice } = require('./lib/price');
 
 const scraperApiKey = process.env.SCRAPER_API_KEY;
 if (!scraperApiKey) {
   throw new Error("CRITICAL: SCRAPER_API_KEY environment variable is missing!");
 }
 
-const API_URL = 'https://market-backend-oozv.onrender.com/api/products/bulk';
+// Override with API_URL to push to a local or staging API.
+const API_URL = process.env.API_URL || 'https://market-backend-oozv.onrender.com/api/products/bulk';
 
 const PROXIES = [
   (url) => url,
@@ -72,17 +74,11 @@ async function scrapeAndPush() {
       const promotionText = $(el).find('[class*="promotionBadge"]').text().trim();
 
       if (!name || !priceText) continue;
-      const price = parseFloat(priceText.replace(',', '.').replace(/[^\d.]/g, ''));
-      if (isNaN(price)) continue;
+      // "1.299,00₺" must become 1299, not 1.299
+      const price = parsePrice(priceText);
+      if (Number.isNaN(price)) continue;
 
-      let promotionPrice = undefined;
-      if (promotionText && promotionText.includes('üzeri')) {
-        const parts = promotionText.split('üzeri');
-        if (parts.length > 1) {
-          const match = parts[1].match(/(\d+\.?\d*)/);
-          if (match) promotionPrice = parseFloat(match[1]);
-        }
-      }
+      const promotionPrice = parsePromotionPrice(promotionText);
 
       allProducts.push({
         name, price, oldPrice: price, promotionPrice,

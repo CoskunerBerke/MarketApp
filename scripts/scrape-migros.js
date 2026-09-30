@@ -6,7 +6,8 @@ if (!scraperApiKey) {
   throw new Error("CRITICAL: SCRAPER_API_KEY environment variable is missing!");
 }
 
-const API_URL = 'https://market-backend-oozv.onrender.com/api/products/bulk';
+// Override with API_URL to push to a local or staging API.
+const API_URL = process.env.API_URL || 'https://market-backend-oozv.onrender.com/api/products/bulk';
 const MIGROS_API = 'https://www.migros.com.tr/rest/sanalmarket/products/search';
 const MAX_PAGES = 15;
 const MIN_DISCOUNT = 15; // Sadece %15 ve üzeri indirimli ürünler

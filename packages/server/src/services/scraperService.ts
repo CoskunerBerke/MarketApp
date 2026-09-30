@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import Product from '../models/Product';
 import Market from '../models/Market';
 import Category from '../models/Category';
+import { parsePrice, parsePromotionPrice } from '../utils/price';
 
 const initMarketsAndCategories = async () => {
   const markets = [
@@ -239,21 +240,12 @@ export const scrapeSpecificMarket = async (marketName: string) => {
 
             if (!title || !priceText) continue;
 
-            // Parse normal price - take only the first numeric part
-            const cleanPriceText = priceText.split('<!--')[0].replace(',', '.').replace(/[^\d.]/g, '');
-            const price = parseFloat(cleanPriceText);
-            
+            // Parse normal price - take only the first numeric part ("1.299,00₺" -> 1299)
+            const price = parsePrice(priceText.split('<!--')[0]);
+            if (Number.isNaN(price)) continue;
+
             // Parse promotion price if exists (e.g. "50 TL üzeri 125.00 TL!")
-            let promotionPrice: number | undefined = undefined;
-            if (promotionText && promotionText.includes('üzeri')) {
-              const parts = promotionText.split('üzeri');
-              if (parts.length > 1) {
-                const promoPriceMatch = parts[1].match(/(\d+\.?\d*)/);
-                if (promoPriceMatch) {
-                  promotionPrice = parseFloat(promoPriceMatch[1]);
-                }
-              }
-            }
+            const promotionPrice = parsePromotionPrice(promotionText);
 
             await Product.findOneAndUpdate(
               { name: title, marketId: market._id },

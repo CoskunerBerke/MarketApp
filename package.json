@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
-    "install:all": "pnpm install"
+    "install:all": "pnpm install",
+    "test": "pnpm -r run test && node --test scripts/lib/price.test.js",
+    "test:scripts": "node --test scripts/lib/price.test.js"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

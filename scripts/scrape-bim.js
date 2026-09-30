@@ -1,13 +1,15 @@
 require('dotenv').config();
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { parsePrice } = require('./lib/price');
 
 const scraperApiKey = process.env.SCRAPER_API_KEY;
 if (!scraperApiKey) {
   throw new Error("CRITICAL: SCRAPER_API_KEY environment variable is missing!");
 }
 
-const API_URL = 'https://market-backend-oozv.onrender.com/api/products/bulk';
+// Override with API_URL to push to a local or staging API.
+const API_URL = process.env.API_URL || 'https://market-backend-oozv.onrender.com/api/products/bulk';
 
 const PROXIES = [
   (url) => url,
@@ -114,8 +116,7 @@ async function scrapeAndPushBim() {
           const d = decimalText.replace(/[^\d]/g, '');
           return parseFloat(`${w}.${d}`);
         } else {
-          const normalized = wholeText.replace(',', '.').replace(/[^\d.]/g, '');
-          return parseFloat(normalized);
+          return parsePrice(wholeText);
         }
       };
 
