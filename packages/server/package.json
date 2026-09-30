@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "start": "node dist/scripts/seedAdmin.js && node dist/index.js",
-    "seed:admin": "ts-node src/scripts/seedAdmin.ts"
+    "seed:admin": "ts-node src/scripts/seedAdmin.ts",
+    "seed:demo": "ts-node src/scripts/seedDemo.ts"
   },
   "keywords": [],
   "author": "",
