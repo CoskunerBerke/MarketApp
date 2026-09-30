@@ -13,18 +13,29 @@ jobs:
   scrape-and-upload:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      # Repository secret; must match SCRAPER_API_KEY on the API server.
+      SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
-        run: npm install axios cheerio
+        # The scripts require axios, cheerio and dotenv (dotenv was missing, so every run failed).
+        run: npm install --no-save --no-audit --no-fund axios cheerio dotenv
+
+      - name: Check scraper configuration
+        run: |
+          if [ -z "$SCRAPER_API_KEY" ]; then
+            echo "::error::SCRAPER_API_KEY repository secret is not set (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
 
       - name: Wake up Render server
         run: |
