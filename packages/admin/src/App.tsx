@@ -1,16 +1,48 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, ShoppingCart, Store, RefreshCw, CheckCircle, AlertCircle, ExternalLink, Mail, Lock, LogOut } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import axios from 'axios';
 import './index.css';
 
-// Force redeploy - Final check for market tabs and scrape buttons
+type MarketName = 'BİM' | 'ŞOK' | 'Migros';
 
-const api = axios.create({ 
-  baseURL: window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api' 
-    : 'https://market-backend-oozv.onrender.com/api' 
+interface AdminProduct {
+  _id: string;
+  name: string;
+  price?: number;
+  oldPrice?: number;
+  discountRate?: number;
+  promotionPrice?: number;
+  promotionText?: string;
+  imageUrl?: string;
+  sourceUrl?: string;
+  marketId?: { name: string } | null;
+}
+
+interface AdminUser {
+  _id: string;
+  email: string;
+  role: string;
+  token: string;
+}
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api'
+    : 'https://market-backend-oozv.onrender.com/api')
 });
+
+const readStoredUser = (): AdminUser | null => {
+  try {
+    const stored = localStorage.getItem('admin_user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+const errorMessage = (err: unknown, fallback: string) =>
+  (axios.isAxiosError(err) && err.response?.data?.message) || fallback;
 
 // Axios JWT Request & Response Interceptors
 api.interceptors.request.use((config) => {
@@ -24,7 +56,9 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use((response) => response, (error) => {
-  if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+  // A failed login is also a 401: let the login form show the message instead of reloading.
+  const isLoginRequest = error.config?.url === '/auth/login';
+  if (!isLoginRequest && error.response && (error.response.status === 401 || error.response.status === 403)) {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
     // Direct page reload to force showing the login screen
@@ -34,7 +68,7 @@ api.interceptors.response.use((response) => response, (error) => {
 });
 
 // Components
-const StatCard = ({ icon: Icon, title, value, color }: any) => (
+const StatCard = ({ icon: Icon, title, value, color }: { icon: ComponentType<{ size?: number }>; title: string; value: number; color: string }) => (
   <div className="stat-card">
     <div className="stat-icon" style={{ backgroundColor: `${color}20`, color }}>
       <Icon size={24} />
@@ -47,35 +81,34 @@ const StatCard = ({ icon: Icon, title, value, color }: any) => (
 );
 
 const Dashboard = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK' | 'Migros'>('BİM');
-  const [stats, setStats] = useState({ total: 0, bim: 0, sok: 0, migros: 0 });
+  const [allProducts, setAllProducts] = useState<AdminProduct[]>([]);
+  const [selectedMarket, setSelectedMarket] = useState<MarketName>('BİM');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   const fetchData = async () => {
     try {
-      const { data } = await api.get('/products');
+      const { data } = await api.get<AdminProduct[]>('/products');
       setAllProducts(data);
-      const bimCount = data.filter((p: any) => p.marketId?.name === 'BİM').length;
-      const sokCount = data.filter((p: any) => p.marketId?.name === 'ŞOK').length;
-      const migrosCount = data.filter((p: any) => p.marketId?.name === 'Migros').length;
-      setStats({ total: data.length, bim: bimCount, sok: sokCount, migros: migrosCount });
-      
-      const filtered = data.filter((p: any) => p.marketId?.name === selectedMarket);
-      setProducts(filtered);
     } catch (err) {
       console.error(err);
     }
   };
 
-  useEffect(() => {
-    const filtered = allProducts.filter((p: any) => p.marketId?.name === selectedMarket);
-    setProducts(filtered);
-  }, [selectedMarket, allProducts]);
+  const countFor = (market: MarketName) => allProducts.filter((p) => p.marketId?.name === market).length;
+  const stats = { total: allProducts.length, bim: countFor('BİM'), sok: countFor('ŞOK'), migros: countFor('Migros') };
+  const products = useMemo(
+    () => allProducts.filter((p) => p.marketId?.name === selectedMarket),
+    [selectedMarket, allProducts]
+  );
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    api.get<AdminProduct[]>('/products')
+      .then(({ data }) => { if (!cancelled) setAllProducts(data); })
+      .catch((err) => console.error(err));
+    return () => { cancelled = true; };
+  }, []);
 
   const handleScrape = async (market: string) => {
     setLoading(true);
@@ -85,7 +118,7 @@ const Dashboard = () => {
       setMessage({ text: `${market} tarama işlemi başlatıldı! Veriler birazdan güncellenecektir.`, type: 'success' });
       setTimeout(fetchData, 8000);
     } catch (err) {
-      setMessage({ text: `${market} güncellenirken bir hata oluştu.`, type: 'error' });
+      setMessage({ text: errorMessage(err, `${market} güncellenirken bir hata oluştu.`), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -264,25 +297,18 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
 
 const App = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'));
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AdminUser | null>(readStoredUser);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('admin_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post<AdminUser>('/auth/login', { email, password });
       if (data.role !== 'admin') {
         setError('Bu panele sadece yöneticiler giriş yapabilir.');
         return;
@@ -291,8 +317,8 @@ const App = () => {
       localStorage.setItem('admin_user', JSON.stringify(data));
       setToken(data.token);
       setUser(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+    } catch (err) {
+      setError(errorMessage(err, 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.'));
     } finally {
       setLoading(false);
     }
