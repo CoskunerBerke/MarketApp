@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Response, NextFunction } from 'express';
 import User from '../models/User';
 import { AuthRequest } from '../types';
+import { getJwtSecret, safeEqual } from '../utils/security';
 
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
   let token: string | undefined;
@@ -9,7 +10,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
+      const decoded: any = jwt.verify(token, getJwtSecret());
       
       const user = await User.findById(decoded.id).select('-passwordHash');
       if (!user) {
@@ -41,7 +42,8 @@ export const scraperApiKeyOrAdmin = async (req: AuthRequest, res: Response, next
 
   if (apiKey) {
     const configApiKey = process.env.SCRAPER_API_KEY;
-    if (!configApiKey || apiKey !== configApiKey) {
+    // Fail closed when no key is configured; compare in constant time.
+    if (!configApiKey || typeof apiKey !== 'string' || !safeEqual(apiKey, configApiKey)) {
       return res.status(401).json({ message: 'Yetkisiz erişim, geçersiz API anahtarı.' });
     }
     return next();
@@ -53,7 +55,7 @@ export const scraperApiKeyOrAdmin = async (req: AuthRequest, res: Response, next
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
+      const decoded: any = jwt.verify(token, getJwtSecret());
       
       const user = await User.findById(decoded.id).select('-passwordHash');
       if (!user) {
