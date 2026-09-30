@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { ShoppingBag, Search, Tag, ExternalLink, User, LogOut, X, Heart, Mail, Lock, Share2 } from 'lucide-react';
 import './index.css';
 
-const api = axios.create({ 
-  baseURL: 'https://market-backend-oozv.onrender.com/api' 
+// VITE_API_URL lets you point the client at a local API (e.g. http://localhost:5000/api).
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://market-backend-oozv.onrender.com/api'
 });
 
 interface Product {
@@ -23,52 +24,88 @@ interface Product {
   };
 }
 
+interface StoredUser {
+  id: string;
+  email: string;
+  role: string;
+  favorites: string[];
+}
+
+interface FavoriteEntry {
+  product: { _id: string } | null;
+}
+
+const readStoredUser = (): StoredUser | null => {
+  try {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
+const errorMessage = (err: unknown, fallback: string) =>
+  (axios.isAxiosError(err) && err.response?.data?.message) || fallback;
+
 function App() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
   const [selectedMarket, setSelectedMarket] = useState<'BİM' | 'ŞOK' | 'Migros'>('BİM');
   
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<StoredUser | null>(readStoredUser);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  const fetchProducts = async () => {
-    try {
-      const { data } = await api.get('/products');
-      setProducts(data);
-    } catch (err) {
-      console.error('Veri çekilemedi:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [favorites, setFavorites] = useState<string[]>(() => readStoredUser()?.favorites || []);
 
   useEffect(() => {
-    fetchProducts();
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      setFavorites(parsedUser.favorites || []);
-    }
+    let cancelled = false;
+    api.get<Product[]>('/products')
+      .then(({ data }) => { if (!cancelled) setProducts(data); })
+      .catch((err) => console.error('Veri çekilemedi:', err))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
+  // Login does not return favourites, so load them from the API for the signed-in user.
+  const userId = user?.id;
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!userId || !token) return;
+    let cancelled = false;
+    api.get<FavoriteEntry[]>('/favorites', { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => {
+        if (cancelled) return;
+        setFavorites(data.flatMap(f => (f.product ? [f.product._id] : [])));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          // Expired or invalid session: sign out instead of failing silently.
+          setUser(null);
+          setFavorites([]);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+        } else {
+          console.error('Favoriler yüklenemedi:', err);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const filteredProducts = useMemo(() => {
     let results = products.filter(p => p.marketId?.name === selectedMarket);
-    
+
     if (viewMode === 'favorites') {
       results = results.filter(p => favorites.includes(p._id));
     }
     if (searchTerm) {
       results = results.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-    setFilteredProducts(results);
+    return results;
   }, [searchTerm, products, viewMode, favorites, selectedMarket]);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -76,14 +113,14 @@ function App() {
     try {
       const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
       const { data } = await api.post(endpoint, { email, password });
-      const userData = { id: data._id, email: data.email, role: data.role, favorites: data.favorites || [] };
-      setUser(userData);
-      setFavorites(userData.favorites);
+      const userData: StoredUser = { id: data._id, email: data.email, role: data.role, favorites: [] };
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', data.token);
+      setUser(userData);
+      setFavorites([]);
       setShowAuthModal(false);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'İşlem başarısız!');
+    } catch (err) {
+      alert(errorMessage(err, 'İşlem başarısız!'));
     }
   };
 
@@ -111,7 +148,7 @@ function App() {
       const updatedUser = { ...user, favorites: data.favorites };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
-    } catch (err) {
+    } catch {
       console.error('Favori güncellenemedi');
     }
   };
