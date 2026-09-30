@@ -26,14 +26,14 @@ A full-stack monorepo that collects weekly discount products from Turkish superm
 
 ## Overview
 
-Supermarket chains publish their weekly "aktüel" deals on separate websites. MarketApp (shown as **MarketFırsat** in the web client) gathers them in one feed so a shopper can browse, search, filter by market and save favourites. Scraper scripts run on a schedule, normalise the products and send them to the API in bulk; admins manage markets and products from a separate panel.
+Supermarket chains publish their weekly "aktüel" deals on separate websites. MarketApp (shown as **MarketFırsat** in the web client) gathers them in one feed so a shopper can browse, search, filter by market and save favourites. Scraper scripts run on a schedule, normalise the products and send them to the API in bulk; admins monitor the data and trigger scrapes from a separate panel.
 
 ## Features
 
 - **Deals feed** — products from BİM, ŞOK and Migros with market filter, search, favourites and share button.
 - **Accounts** — register / login with JWT, password hashing (bcryptjs), password reset flow.
-- **Admin panel** — dashboard, market management and product management (create / edit / delete), scrape triggers.
-- **Scrapers** — `scripts/scrape-bim.js`, `scrape-sok.js`, `scrape-migros.js` (axios + Cheerio) push data to `/api/products/bulk`, authenticated with a scraper API key.
+- **Admin panel** — dashboard with per-market product counts and lists, and a button to trigger a scrape for each market. The API also exposes admin-only create / update / delete routes for markets and products.
+- **Scrapers** — `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) and `scrape-migros.js` (axios, Migros product search endpoint) push data to `/api/products/bulk`, authenticated with a scraper API key.
 - **Scheduled updates** — GitHub Actions workflow (`scrape-all.yml`) runs the scrapers four times a day with retries and wakes the free-tier API first.
 - **API security** — Helmet, CORS allow-list, global and login rate limits, Zod request validation, admin-only routes, audit logging.
 - **Web security headers** — the client's `vercel.json` sets a strict Content-Security-Policy, HSTS, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`.
@@ -45,7 +45,7 @@ Supermarket chains publish their weekly "aktüel" deals on separate websites. Ma
 |---|---|
 | Web client (`packages/client`) | React 19, TypeScript, Vite, React Router, Axios, Lucide icons |
 | Admin panel (`packages/admin`) | React 19, TypeScript, Vite, React Router, Axios |
-| API (`packages/server`) | Node.js, Express 5, TypeScript, Mongoose (MongoDB), JWT, bcryptjs, Zod, Helmet, express-rate-limit, node-cron, Cheerio |
+| API (`packages/server`) | Node.js, Express 5, TypeScript, Mongoose (MongoDB), JWT, bcryptjs, Zod, Helmet, express-rate-limit, Cheerio |
 | Mobile (`mobile`) | Expo, React Native, React Navigation, Zustand, AsyncStorage |
 | Tooling & hosting | pnpm workspaces, GitHub Actions, Vercel (client, admin), Render (API) |
 
@@ -111,7 +111,7 @@ Mobile app: `cd mobile && npm install && npx expo start`.
 
 - **Fırsat akışı:** BİM, ŞOK ve Migros ürünleri; market filtresi, arama, favoriler ve paylaşma.
 - **Hesaplar:** JWT ile kayıt / giriş, şifre hash'leme, şifre sıfırlama akışı.
-- **Yönetim paneli:** market ve ürün yönetimi (ekle / düzenle / sil), veri çekme tetikleyicileri.
+- **Yönetim paneli:** market bazında ürün sayıları ve listeleri, her market için veri çekmeyi başlatan buton. API ayrıca market ve ürünler için yöneticiye özel ekleme / güncelleme / silme uç noktaları sunar.
 - **Veri çekiciler:** BİM, ŞOK ve Migros betikleri ürünleri API'ye toplu olarak gönderir.
 - **Zamanlanmış güncelleme:** GitHub Actions iş akışı günde dört kez çalışır.
 - **Güvenlik:** Helmet, CORS izin listesi, istek sınırlama, Zod doğrulaması, yalnız yöneticiye açık uç noktalar, denetim kaydı ve sıkı güvenlik başlıkları.
