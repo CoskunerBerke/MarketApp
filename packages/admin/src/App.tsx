@@ -136,7 +136,7 @@ const Dashboard = () => {
     <div className="animate-fade">
       <div className="header">
         <h1>Dashboard</h1>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={() => handleScrape('bim')}>
             <RefreshCw size={18} className={loading ? 'spinner' : ''} /> BİM Tarat
           </button>
@@ -152,7 +152,7 @@ const Dashboard = () => {
             rel="noreferrer"
             title="Migros verisi zamanlanmış GitHub Actions iş akışıyla güncellenir. Elle çalıştırmak için iş akışı sayfasında 'Run workflow' seçeneğini kullanın."
           >
-            <ExternalLink size={18} /> Migros: GitHub Actions
+            <ExternalLink size={18} /> Migros (Actions)
           </a>
         </div>
       </div>
