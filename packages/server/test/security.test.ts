@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { escapeRegex, generateResetCode, getJwtSecret, hashResetCode, safeEqual } from '../src/utils/security';
+import {
+  escapeRegex,
+  findPlaceholderSecrets,
+  generateResetCode,
+  getJwtSecret,
+  hashResetCode,
+  PLACEHOLDER_SECRETS,
+  safeEqual,
+} from '../src/utils/security';
 
 describe('safeEqual', () => {
   it('matches equal strings and rejects different ones (including different lengths)', () => {
@@ -43,5 +51,26 @@ describe('password reset codes', () => {
     delete process.env.JWT_SECRET;
     expect(() => getJwtSecret()).toThrow();
     expect(() => hashResetCode('user-a', '123456')).toThrow();
+  });
+});
+
+describe('findPlaceholderSecrets', () => {
+  const secretNames = ['JWT_SECRET', 'SCRAPER_API_KEY', 'ADMIN_PASSWORD'];
+
+  it('flags the .env.example placeholders, including old ones and the former JWT fallback', () => {
+    expect(PLACEHOLDER_SECRETS).toEqual(expect.arrayContaining(['change-me', 'your_jwt_secret_key_here', 'supersecretkey']));
+    for (const placeholder of PLACEHOLDER_SECRETS) {
+      expect(findPlaceholderSecrets({ SCRAPER_API_KEY: placeholder }, secretNames)).toEqual(['SCRAPER_API_KEY']);
+    }
+    expect(
+      findPlaceholderSecrets(
+        { JWT_SECRET: 'supersecretkey', SCRAPER_API_KEY: 'your_scraper_secure_api_key_here', ADMIN_PASSWORD: ' change-me ' },
+        secretNames,
+      ),
+    ).toEqual(secretNames);
+  });
+
+  it('accepts any other value (no length rule) and ignores unset variables', () => {
+    expect(findPlaceholderSecrets({ JWT_SECRET: 'x7', SCRAPER_API_KEY: 'change-me-2' }, secretNames)).toEqual([]);
   });
 });

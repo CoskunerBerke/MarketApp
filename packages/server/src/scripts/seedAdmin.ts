@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import connectDB from '../config/db';
+import { findPlaceholderSecrets } from '../utils/security';
 
 dotenv.config();
 
@@ -12,6 +13,11 @@ const seedAdmin = async () => {
 
   if (!email || !password) {
     console.error('[SEED ERROR] ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required.');
+    process.exit(1);
+  }
+
+  if (process.env.NODE_ENV === 'production' && findPlaceholderSecrets(process.env, ['ADMIN_PASSWORD']).length > 0) {
+    console.error('[SEED ERROR] ADMIN_PASSWORD is still a placeholder value from .env.example. Set a real password in production.');
     process.exit(1);
   }
 

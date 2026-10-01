@@ -14,6 +14,26 @@ export const getJwtSecret = (): string => {
 };
 
 /**
+ * Example values from .env.example and from older versions of this repository
+ * (including the former JWT fallback). They are public on GitHub, so they must
+ * never be used as real secrets.
+ */
+export const PLACEHOLDER_SECRETS: readonly string[] = [
+  'change-me',
+  'your_jwt_secret_key_here',
+  'your_scraper_secure_api_key_here',
+  'your_secure_admin_password_here',
+  'supersecretkey',
+];
+
+/** Returns the names of the given environment variables that are set to a known placeholder value. */
+export const findPlaceholderSecrets = (env: NodeJS.ProcessEnv, names: readonly string[]): string[] =>
+  names.filter((name) => {
+    const value = env[name];
+    return value !== undefined && PLACEHOLDER_SECRETS.includes(value.trim());
+  });
+
+/**
  * Constant-time string comparison. Both values are hashed first so that
  * inputs of different lengths do not leak timing information either.
  */
