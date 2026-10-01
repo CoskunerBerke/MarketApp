@@ -6,12 +6,14 @@ test('parses Turkish prices with a decimal comma', () => {
   assert.equal(parsePrice('172,00₺'), 172);
   assert.equal(parsePrice('99,95₺'), 99.95);
   assert.equal(parsePrice('₺45'), 45);
+  assert.equal(parsePrice('12,50'), 12.5);
 });
 
 test('keeps thousands separators (1.299,90 is not 1.299)', () => {
   assert.equal(parsePrice('1.299,90 ₺'), 1299.9);
   assert.equal(parsePrice('12.499,00₺'), 12499);
   assert.equal(parsePrice('1.299'), 1299);
+  assert.equal(parsePrice('12,500'), 12500);
   assert.equal(parsePrice('1,299.50'), 1299.5);
 });
 

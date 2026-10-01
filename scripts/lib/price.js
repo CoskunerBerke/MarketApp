@@ -5,6 +5,7 @@
  *   "1.299,90 ₺" -> 1299.9   (dot = thousands separator)
  *   "109.00 TL" -> 109       (dot followed by two digits = decimal)
  *   "1.299"     -> 1299      (dot followed by three digits = thousands)
+ *   "12,500"    -> 12500     (same for a comma: the sites print two decimals, not three)
  *
  * Returns NaN when the text contains no number.
  */
