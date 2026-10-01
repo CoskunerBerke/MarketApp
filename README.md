@@ -152,13 +152,13 @@ Names only — never commit real values. The API reads `packages/server/.env`; s
 | Variable | Used by | Required | Purpose |
 |---|---|---|---|
 | `MONGODB_URI` | API, seed scripts | yes | MongoDB connection string |
-| `JWT_SECRET` | API | yes | Signs login tokens and password-reset code hashes (no default) |
+| `JWT_SECRET` | API | yes | Signs login tokens and password-reset code hashes (no default; in production the `.env.example` placeholder is refused) |
 | `SCRAPER_API_KEY` | API, scrapers, GitHub secret | yes | Shared key for `/api/products/bulk` and `/api/scrape/:market` |
 | `PORT` | API | no (5000) | HTTP port |
 | `NODE_ENV` | API | no | `production` also requires the origins and admin credentials below |
 | `CLIENT_ORIGIN`, `ADMIN_ORIGIN` | API | in production | CORS allow-list (localhost is allowed in development) |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | `seed:admin`, `npm start` | in production | Admin account; `npm start` re-applies this password on every start |
-| `TRUST_PROXY` | API | recommended behind a proxy | Proxy hops (e.g. `1` on Render) so rate limits see client IPs |
+| `TRUST_PROXY` | API | recommended behind a proxy | Number of proxy hops (e.g. `1` on Render) so rate limits see client IPs; only a whole number is accepted (`true` is read as `1`) |
 | `VITE_API_URL` | web client, admin | no | API base URL; defaults to the production API |
 | `API_URL` | scrapers | no | Override the bulk endpoint (e.g. a local API) |
 | `TEST_MONGODB_URI` | API tests | for integration tests | MongoDB server used by the integration tests |
@@ -172,7 +172,7 @@ pnpm -r run lint                             # ESLint (web client, admin)
 pnpm --filter @market/server run typecheck   # API + test type check
 ```
 
-- **API** (`packages/server/test`, Vitest + Supertest): 37 tests in 7 files. 27 run without a database — security helpers, zod schemas, the price parser, and HTTP checks for error handling, CORS, query validation and scraper authentication. 10 integration tests need `TEST_MONGODB_URI` (skipped otherwise): the password reset flow (no code in responses, no account enumeration, operator-injection attempt, single use, attempt limit under parallel requests, expiry, rate limit), literal product search, bulk upload replacement and favourites.
+- **API** (`packages/server/test`, Vitest + Supertest): 51 tests in 9 files. 41 run without a database — security helpers, zod schemas, the price parsers (including BİM's split prices), production start-up checks, and HTTP checks for error handling, CORS, query validation, scraper authentication and rate limiting behind a proxy. 10 integration tests need `TEST_MONGODB_URI` (skipped otherwise): the password reset flow (no code in responses, no account enumeration, operator-injection attempt, single use, attempt limit under parallel requests, expiry, rate limit), literal product search, bulk upload replacement and favourites.
 - **Scraper helpers** (`scripts/lib/price.test.js`, node:test): 5 tests for Turkish price and promotion parsing.
 - **CI** (`.github/workflows/ci.yml`) runs on every push and pull request: frozen-lockfile install, build of all packages (tsc + Vite), API test type check, ESLint, all tests against a `mongo:7` service, and a type check of the mobile app.
 
@@ -186,8 +186,8 @@ pnpm --filter @market/server run typecheck   # API + test type check
 
 - **Password reset:** codes come from a CSPRNG, are stored only as an HMAC, expire after 15 minutes, work once, allow 5 attempts (counted atomically) and the endpoint is rate-limited. The code is never returned in a response or written to logs, and the response is the same whether or not the e-mail is registered.
 - **Input validation:** zod schemas on auth, favourites, product and bulk routes accept only strings where strings are expected (MongoDB operator objects are rejected) and only `http(s)` links; product search is matched literally.
-- **Secrets:** `JWT_SECRET` has no fallback value; the scraper key is compared in constant time; `.env` files are git-ignored.
-- **HTTP hardening:** Helmet headers, CORS allow-list, global / login / reset / scraper rate limits, 1 MB body limit, JSON error responses without stack traces, audit log of admin and scraper actions.
+- **Secrets:** `JWT_SECRET` has no fallback value; with `NODE_ENV=production` the API refuses to start if `JWT_SECRET`, `SCRAPER_API_KEY` or `ADMIN_PASSWORD` is still a placeholder from `.env.example`; the scraper key is compared in constant time; `.env` files are git-ignored.
+- **HTTP hardening:** Helmet headers, CORS allow-list, global / login / reset / scraper rate limits, 1 MB body limit, JSON error responses without stack traces, audit log of admin and scraper actions. `TRUST_PROXY` only accepts a hop count, so clients cannot pick their own IP with `X-Forwarded-For`.
 - **Known limitations:** the login endpoint says whether an e-mail is registered; the web client keeps the 30-day JWT in `localStorage`; registration only has the global rate limit.
 
 Found a security problem? Please contact the author privately instead of opening a public issue.
@@ -233,6 +233,8 @@ Market zincirleri haftalık "aktüel" fırsatlarını ayrı sitelerde yayınlar.
 
 Yukarıdaki [Architecture](#architecture) diyagramı akışı gösterir: GitHub Actions betikleri market sitelerinden veriyi çeker ve API anahtarıyla `/api/products/bulk` adresine gönderir; Express API verileri MongoDB'de saklar; web istemcisi, yönetim paneli ve mobil uygulama REST üzerinden API'yi kullanır; yönetim paneli ayrıca sunucu tarafındaki BİM / ŞOK taramasını tetikleyebilir.
 
+Ana API uç noktaları: `GET /api/products` (filtreler: `marketId`, `categoryId`, `search`), `GET /api/markets`, `GET /api/categories`, `POST /api/auth/{register,login,forgot-password,reset-password}`, `GET|POST /api/favorites` (JWT), `POST /api/products/bulk` ve `POST /api/scrape/:market` (scraper anahtarı veya yönetici JWT'si), ayrıca `/api/markets` ve `/api/products` üzerinde yöneticiye özel ekleme / güncelleme / silme.
+
 ### Teknolojiler
 
 | Bölüm | Araçlar |
@@ -276,14 +278,19 @@ Yönetim paneli `localhost` üzerinde açıldığında otomatik olarak `http://l
 
 ### Yapılandırma
 
-Ortam değişkenlerinin adları ve görevleri yukarıdaki [Configuration](#configuration) tablosundadır: zorunlu olanlar `MONGODB_URI`, `JWT_SECRET` ve `SCRAPER_API_KEY`; üretimde ayrıca `CLIENT_ORIGIN`, `ADMIN_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`; Render gibi bir proxy arkasında `TRUST_PROXY=1` önerilir. İstemci ve panel için `VITE_API_URL`, betikler için `API_URL`, entegrasyon testleri için `TEST_MONGODB_URI` kullanılır. Gerçek değerleri asla commit etmeyin.
+Ortam değişkenlerinin adları ve görevleri yukarıdaki [Configuration](#configuration) tablosundadır: zorunlu olanlar `MONGODB_URI`, `JWT_SECRET` ve `SCRAPER_API_KEY`; üretimde ayrıca `CLIENT_ORIGIN`, `ADMIN_ORIGIN`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`; Render gibi bir proxy arkasında `TRUST_PROXY=1` önerilir (yalnızca proxy sayısı olarak tam sayı kabul edilir; `true` değeri `1` olarak okunur). Üretimde `.env.example` içindeki yer tutucu değerler reddedilir. İstemci ve panel için `VITE_API_URL`, betikler için `API_URL`, entegrasyon testleri için `TEST_MONGODB_URI` kullanılır. Gerçek değerleri asla commit etmeyin.
 
 ### Testler
 
-`pnpm test` API testlerini ve betik yardımcı testlerini çalıştırır; `TEST_MONGODB_URI` tanımlıysa MongoDB entegrasyon testleri de çalışır.
+```bash
+pnpm test                                    # API testleri + veri çekici yardımcı testleri
+TEST_MONGODB_URI=mongodb://127.0.0.1:27017 pnpm test    # MongoDB entegrasyon testleriyle birlikte
+pnpm -r run lint                             # ESLint (web istemcisi, yönetim paneli)
+pnpm --filter @market/server run typecheck   # API + test tip kontrolü
+```
 
-- **API** (Vitest + Supertest): 7 dosyada 37 test. 27'si veritabanı olmadan çalışır (güvenlik yardımcıları, zod şemaları, fiyat ayrıştırıcı, hata yönetimi, CORS, sorgu doğrulaması, scraper kimlik doğrulaması). 10 entegrasyon testi `TEST_MONGODB_URI` ister: şifre sıfırlama akışı (yanıtta kod yok, hesap ifşası yok, operatör enjeksiyonu denemesi, tek kullanım, paralel isteklerde deneme sınırı, süre dolumu, istek sınırı), birebir ürün araması, toplu yükleme ve favoriler.
-- **Veri çekici yardımcıları** (node:test): Türkçe fiyat ve kampanya ayrıştırma için 5 test.
+- **API** (`packages/server/test`, Vitest + Supertest): 9 dosyada 51 test. 41'i veritabanı olmadan çalışır (güvenlik yardımcıları, zod şemaları, BİM'in ayrık fiyatları dahil fiyat ayrıştırıcılar, üretim başlangıç kontrolleri, hata yönetimi, CORS, sorgu doğrulaması, scraper kimlik doğrulaması, proxy arkasında istek sınırlama). 10 entegrasyon testi `TEST_MONGODB_URI` ister: şifre sıfırlama akışı (yanıtta kod yok, hesap ifşası yok, operatör enjeksiyonu denemesi, tek kullanım, paralel isteklerde deneme sınırı, süre dolumu, istek sınırı), birebir ürün araması, toplu yükleme ve favoriler.
+- **Veri çekici yardımcıları** (`scripts/lib/price.test.js`, node:test): Türkçe fiyat ve kampanya ayrıştırma için 5 test.
 - **CI** her push ve pull request'te çalışır: kilit dosyasıyla kurulum, tüm paketlerin derlenmesi, API test tip kontrolü, ESLint, `mongo:7` servisine karşı tüm testler ve mobil uygulamanın tip kontrolü.
 
 ### Dağıtım
@@ -296,8 +303,8 @@ Ortam değişkenlerinin adları ve görevleri yukarıdaki [Configuration](#confi
 
 - **Şifre sıfırlama:** kodlar kriptografik rastgele üretilir, yalnızca HMAC olarak saklanır, 15 dakikada geçersiz olur, tek kullanımlıktır, 5 deneme hakkı vardır (atomik sayılır) ve uç nokta istek sınırlıdır. Kod hiçbir yanıtta dönmez ve loglara yazılmaz; e-posta kayıtlı olsa da olmasa da aynı yanıt verilir.
 - **Girdi doğrulama:** kimlik doğrulama, favori, ürün ve toplu yükleme uç noktalarındaki zod şemaları metin beklenen yerde yalnızca metin (MongoDB operatör nesneleri reddedilir) ve yalnızca `http(s)` bağlantıları kabul eder; ürün araması birebir eşleşir.
-- **Gizli anahtarlar:** `JWT_SECRET` için varsayılan değer yoktur; scraper anahtarı sabit zamanlı karşılaştırılır; `.env` dosyaları git dışındadır.
-- **HTTP sıkılaştırma:** Helmet başlıkları, CORS izin listesi, genel / giriş / sıfırlama / scraper istek sınırları, 1 MB gövde sınırı, yığın izi içermeyen JSON hata yanıtları, yönetici ve scraper işlemleri için denetim kaydı.
+- **Gizli anahtarlar:** `JWT_SECRET` için varsayılan değer yoktur; `NODE_ENV=production` iken `JWT_SECRET`, `SCRAPER_API_KEY` veya `ADMIN_PASSWORD` hâlâ `.env.example` içindeki yer tutucu değerse API başlamaz; scraper anahtarı sabit zamanlı karşılaştırılır; `.env` dosyaları git dışındadır.
+- **HTTP sıkılaştırma:** Helmet başlıkları, CORS izin listesi, genel / giriş / sıfırlama / scraper istek sınırları, 1 MB gövde sınırı, yığın izi içermeyen JSON hata yanıtları, yönetici ve scraper işlemleri için denetim kaydı. `TRUST_PROXY` yalnızca proxy sayısı kabul eder; böylece istemciler `X-Forwarded-For` ile kendi IP adreslerini seçemez.
 - **Bilinen sınırlamalar:** giriş uç noktası bir e-postanın kayıtlı olup olmadığını belli eder; web istemcisi 30 günlük JWT'yi `localStorage`'da tutar; kayıt uç noktasında yalnızca genel istek sınırı vardır.
 
 Bir güvenlik açığı bulursanız lütfen herkese açık issue açmak yerine yazara doğrudan ulaşın.
