@@ -35,7 +35,7 @@
 
 ## Contents
 
-- [Overview](#overview) · [Features](#features) · [Architecture](#architecture) · [Tech stack](#tech-stack) · [Project structure](#project-structure)
+- [Overview](#overview) · [Features](#features) · [How it works](#how-it-works) · [Architecture](#architecture) · [Tech stack](#tech-stack) · [Project structure](#project-structure)
 - [Quick start](#quick-start) · [Configuration](#configuration) · [Testing](#testing) · [Deployment](#deployment)
 - [Security](#security) · [Status and roadmap](#status-and-roadmap) · [Türkçe](#türkçe)
 
@@ -49,11 +49,21 @@ Supermarket chains publish their weekly "aktüel" deals on separate websites. Ma
 - **Accounts** — register / login with JWT and bcrypt password hashing; favourites are stored per user.
 - **Password reset API** — single-use 6-digit codes that expire after 15 minutes, with an attempt limit. E-mail delivery is not connected yet (see [Status](#status-and-roadmap)).
 - **Admin panel** — per-market product counts and lists, buttons to start the server-side BİM / ŞOK scrape, and a link to the GitHub Actions workflow that refreshes Migros (it can also be run by hand there). The API also has admin-only create / update / delete routes for markets and products.
-- **Scrapers** — `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) and `scrape-migros.js` (Migros product search endpoint) push data to `/api/products/bulk`, authenticated with a scraper API key. A full scrape replaces the market's old products.
+- **Scrapers** — `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) and `scrape-migros.js` (Migros product search endpoint) push data to `/api/products/bulk`, authenticated with a scraper API key. An upload with at least 5 products replaces the market's older products; a smaller one only adds and updates.
 - **Scheduled updates** — `.github/workflows/scrape-all.yml` runs the scrapers four times a day with one retry per market and wakes the free-tier API first.
 - **API security** — Helmet, CORS allow-list, rate limits, zod validation, admin-only routes, audit log (details in [Security](#security)).
 - **Web security headers** — the client's `vercel.json` sets a strict Content-Security-Policy, HSTS, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`.
 - **Mobile app** (Expo / React Native, early version) — deals list with search and favourites, product detail, sign-in / register / password reset screens.
+
+## How it works
+
+1. **Collect.** A GitHub Actions workflow runs three scrapers four times a day. BİM and ŞOK pages are parsed with Cheerio (with two public proxies as fallback); Migros comes from its JSON product search, keeping only discounts of 15% or more.
+2. **Normalise.** Every offer becomes one product object (name, price, old price, discount, ŞOK promotion, image and source link). One shared rule turns Turkish price text into numbers: with both `.` and `,` the last one is the decimal separator, and a single kind of separator followed by exactly three digits is a thousands separator (`1.299,90 ₺` → `1299.9`, `1.299` → `1299`).
+3. **Upload and replace.** Each chain's list goes to `POST /api/products/bulk` in one request with the scraper key. The API validates the whole batch (one bad item rejects it), upserts products by name and market so their ids (and users' favourites) stay stable, and, when at least 5 products were saved, deletes that market's products the upload did not refresh.
+4. **Serve.** The web and mobile clients load the product list once and filter by market, search text and favourites in the app; accounts use bcrypt and 30-day JWTs, and the role is read from the database on every protected request.
+5. **Protect.** Production refuses placeholder secrets, `TRUST_PROXY` is read only as a hop count so `X-Forwarded-For` cannot be spoofed past the rate limits, and password reset codes are stored as an HMAC, expire after 15 minutes and allow 5 attempts counted atomically.
+
+The full explanation, with diagrams of each flow, the data model, the scraper rules, the security model, test counts and known gaps, is in **[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)**.
 
 ## Architecture
 
@@ -188,7 +198,7 @@ pnpm --filter @market/server run typecheck   # API + test type check
 - **Input validation:** zod schemas on auth, favourites, product and bulk routes accept only strings where strings are expected (MongoDB operator objects are rejected) and only `http(s)` links; product search is matched literally.
 - **Secrets:** `JWT_SECRET` has no fallback value; with `NODE_ENV=production` the API refuses to start if `JWT_SECRET`, `SCRAPER_API_KEY` or `ADMIN_PASSWORD` is still a placeholder from `.env.example`; the scraper key is compared in constant time; `.env` files are git-ignored.
 - **HTTP hardening:** Helmet headers, CORS allow-list, global / login / reset / scraper rate limits, 1 MB body limit, JSON error responses without stack traces, audit log of admin and scraper actions. `TRUST_PROXY` only accepts a hop count, so clients cannot pick their own IP with `X-Forwarded-For`.
-- **Known limitations:** the login endpoint says whether an e-mail is registered; the web client keeps the 30-day JWT in `localStorage`; registration only has the global rate limit.
+- **Known limitations:** the login and register endpoints say whether an e-mail is registered; the web client keeps the 30-day JWT in `localStorage`; registration only has the global rate limit.
 
 Found a security problem? Please contact the author privately instead of opening a public issue.
 
@@ -223,11 +233,21 @@ Market zincirleri haftalık "aktüel" fırsatlarını ayrı sitelerde yayınlar.
 - **Hesaplar:** JWT ile kayıt / giriş, bcrypt ile şifre hash'leme; favoriler kullanıcı bazında saklanır.
 - **Şifre sıfırlama API'si:** 15 dakika geçerli, tek kullanımlık, deneme sınırı olan 6 haneli kodlar. E-posta gönderimi henüz bağlı değil (bkz. [Durum ve yol haritası](#durum-ve-yol-haritası)).
 - **Yönetim paneli:** market bazında ürün sayıları ve listeleri, sunucu tarafındaki BİM / ŞOK taramasını başlatan butonlar ve Migros'u güncelleyen GitHub Actions iş akışına bağlantı (iş akışı oradan elle de çalıştırılabilir). API ayrıca market ve ürünler için yöneticiye özel ekleme / güncelleme / silme uç noktaları sunar.
-- **Veri çekiciler:** `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) ve `scrape-migros.js` (Migros ürün arama uç noktası) verileri scraper API anahtarıyla `/api/products/bulk` adresine gönderir. Tam bir tarama, marketin eski ürünlerinin yerini alır.
+- **Veri çekiciler:** `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) ve `scrape-migros.js` (Migros ürün arama uç noktası) verileri scraper API anahtarıyla `/api/products/bulk` adresine gönderir. En az 5 ürünlük bir yükleme marketin eski ürünlerinin yerini alır; daha küçük bir yükleme yalnızca ekler ve günceller.
 - **Zamanlanmış güncelleme:** `.github/workflows/scrape-all.yml` günde dört kez çalışır, her market için bir kez yeniden dener ve önce ücretsiz sunucuyu uyandırır.
 - **API güvenliği:** Helmet, CORS izin listesi, istek sınırlama, zod doğrulaması, yöneticiye özel uç noktalar, denetim kaydı (ayrıntılar [Güvenlik](#güvenlik) bölümünde).
 - **Web güvenlik başlıkları:** istemcinin `vercel.json` dosyası sıkı bir Content-Security-Policy, HSTS, `X-Frame-Options`, `Referrer-Policy` ve `Permissions-Policy` tanımlar.
 - **Mobil uygulama** (Expo / React Native, erken sürüm): arama ve favorili fırsat listesi, ürün detayı, giriş / kayıt / şifre sıfırlama ekranları.
+
+### Nasıl çalışır
+
+1. **Toplama:** GitHub Actions iş akışı üç veri çekiciyi günde dört kez çalıştırır. BİM ve ŞOK sayfaları Cheerio ile ayrıştırılır (yedek olarak iki açık proxy denenir); Migros verisi JSON ürün aramasından gelir ve yalnızca %15 ve üzeri indirimler tutulur.
+2. **Normalize etme:** Her fırsat tek bir ürün nesnesine dönüşür (ad, fiyat, eski fiyat, indirim, ŞOK kampanyası, görsel ve kaynak bağlantısı). Türkçe fiyat metni ortak bir kuralla sayıya çevrilir: hem `.` hem `,` varsa sondaki ondalık ayracıdır; tek tür ayraçtan sonra tam üç rakam geliyorsa binlik ayracıdır (`1.299,90 ₺` → `1299.9`, `1.299` → `1299`).
+3. **Yükleme ve değiştirme:** Her marketin listesi scraper anahtarıyla tek istekte `POST /api/products/bulk` adresine gider. API partinin tamamını doğrular (tek hatalı ürün isteği reddeder), ürünleri ad ve markete göre upsert eder; böylece ürün kimlikleri (ve kullanıcıların favorileri) korunur. En az 5 ürün kaydedildiyse o marketin bu yüklemede güncellenmeyen ürünleri silinir.
+4. **Sunma:** Web ve mobil istemci ürün listesini bir kez yükler, market, arama metni ve favorilere göre uygulama içinde filtreler; hesaplarda bcrypt ve 30 günlük JWT kullanılır, rol her korumalı istekte veritabanından okunur.
+5. **Koruma:** Üretimde yer tutucu gizli değerler reddedilir; `TRUST_PROXY` yalnızca proxy sayısı olarak okunur, böylece `X-Forwarded-For` ile istek sınırları aşılamaz; şifre sıfırlama kodları HMAC olarak saklanır, 15 dakikada geçersiz olur ve atomik sayılan 5 deneme hakkı vardır.
+
+Akış diyagramları, veri modeli, veri çekici kuralları, güvenlik modeli, test sayıları ve bilinen eksiklerle ayrıntılı açıklama (İngilizce, sonunda Türkçe özetiyle): **[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md)**.
 
 ### Mimari
 
@@ -305,7 +325,7 @@ pnpm --filter @market/server run typecheck   # API + test tip kontrolü
 - **Girdi doğrulama:** kimlik doğrulama, favori, ürün ve toplu yükleme uç noktalarındaki zod şemaları metin beklenen yerde yalnızca metin (MongoDB operatör nesneleri reddedilir) ve yalnızca `http(s)` bağlantıları kabul eder; ürün araması birebir eşleşir.
 - **Gizli anahtarlar:** `JWT_SECRET` için varsayılan değer yoktur; `NODE_ENV=production` iken `JWT_SECRET`, `SCRAPER_API_KEY` veya `ADMIN_PASSWORD` hâlâ `.env.example` içindeki yer tutucu değerse API başlamaz; scraper anahtarı sabit zamanlı karşılaştırılır; `.env` dosyaları git dışındadır.
 - **HTTP sıkılaştırma:** Helmet başlıkları, CORS izin listesi, genel / giriş / sıfırlama / scraper istek sınırları, 1 MB gövde sınırı, yığın izi içermeyen JSON hata yanıtları, yönetici ve scraper işlemleri için denetim kaydı. `TRUST_PROXY` yalnızca proxy sayısı kabul eder; böylece istemciler `X-Forwarded-For` ile kendi IP adreslerini seçemez.
-- **Bilinen sınırlamalar:** giriş uç noktası bir e-postanın kayıtlı olup olmadığını belli eder; web istemcisi 30 günlük JWT'yi `localStorage`'da tutar; kayıt uç noktasında yalnızca genel istek sınırı vardır.
+- **Bilinen sınırlamalar:** giriş ve kayıt uç noktaları bir e-postanın kayıtlı olup olmadığını belli eder; web istemcisi 30 günlük JWT'yi `localStorage`'da tutar; kayıt uç noktasında yalnızca genel istek sınırı vardır.
 
 Bir güvenlik açığı bulursanız lütfen herkese açık issue açmak yerine yazara doğrudan ulaşın.
 
