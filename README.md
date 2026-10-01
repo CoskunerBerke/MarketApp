@@ -48,7 +48,7 @@ Supermarket chains publish their weekly "aktüel" deals on separate websites. Ma
 - **Deals feed** — products from BİM, ŞOK and Migros with market tabs, search, discount badges, ŞOK promotion banners ("50 TL üzeri …"), favourites and a share button. Responsive down to phone width.
 - **Accounts** — register / login with JWT and bcrypt password hashing; favourites are stored per user.
 - **Password reset API** — single-use 6-digit codes that expire after 15 minutes, with an attempt limit. E-mail delivery is not connected yet (see [Status](#status-and-roadmap)).
-- **Admin panel** — per-market product counts and lists, and buttons to start the server-side BİM / ŞOK scrape. The API also has admin-only create / update / delete routes for markets and products.
+- **Admin panel** — per-market product counts and lists, buttons to start the server-side BİM / ŞOK scrape, and a link to the GitHub Actions workflow that refreshes Migros (it can also be run by hand there). The API also has admin-only create / update / delete routes for markets and products.
 - **Scrapers** — `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) and `scrape-migros.js` (Migros product search endpoint) push data to `/api/products/bulk`, authenticated with a scraper API key. A full scrape replaces the market's old products.
 - **Scheduled updates** — `.github/workflows/scrape-all.yml` runs the scrapers four times a day with one retry per market and wakes the free-tier API first.
 - **API security** — Helmet, CORS allow-list, rate limits, zod validation, admin-only routes, audit log (details in [Security](#security)).
@@ -222,7 +222,7 @@ Market zincirleri haftalık "aktüel" fırsatlarını ayrı sitelerde yayınlar.
 - **Fırsat akışı:** BİM, ŞOK ve Migros ürünleri; market sekmeleri, arama, indirim rozetleri, ŞOK kampanya bantları ("50 TL üzeri …"), favoriler ve paylaşma butonu. Telefon genişliğine kadar duyarlı tasarım.
 - **Hesaplar:** JWT ile kayıt / giriş, bcrypt ile şifre hash'leme; favoriler kullanıcı bazında saklanır.
 - **Şifre sıfırlama API'si:** 15 dakika geçerli, tek kullanımlık, deneme sınırı olan 6 haneli kodlar. E-posta gönderimi henüz bağlı değil (bkz. [Durum ve yol haritası](#durum-ve-yol-haritası)).
-- **Yönetim paneli:** market bazında ürün sayıları ve listeleri, sunucu tarafındaki BİM / ŞOK taramasını başlatan butonlar. API ayrıca market ve ürünler için yöneticiye özel ekleme / güncelleme / silme uç noktaları sunar.
+- **Yönetim paneli:** market bazında ürün sayıları ve listeleri, sunucu tarafındaki BİM / ŞOK taramasını başlatan butonlar ve Migros'u güncelleyen GitHub Actions iş akışına bağlantı (iş akışı oradan elle de çalıştırılabilir). API ayrıca market ve ürünler için yöneticiye özel ekleme / güncelleme / silme uç noktaları sunar.
 - **Veri çekiciler:** `scripts/scrape-bim.js`, `scrape-sok.js` (axios + Cheerio) ve `scrape-migros.js` (Migros ürün arama uç noktası) verileri scraper API anahtarıyla `/api/products/bulk` adresine gönderir. Tam bir tarama, marketin eski ürünlerinin yerini alır.
 - **Zamanlanmış güncelleme:** `.github/workflows/scrape-all.yml` günde dört kez çalışır, her market için bir kez yeniden dener ve önce ücretsiz sunucuyu uyandırır.
 - **API güvenliği:** Helmet, CORS izin listesi, istek sınırlama, zod doğrulaması, yöneticiye özel uç noktalar, denetim kaydı (ayrıntılar [Güvenlik](#güvenlik) bölümünde).
