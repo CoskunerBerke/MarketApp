@@ -76,6 +76,11 @@ describe('scraper endpoints', () => {
     expect(res.status).toBe(400);
   });
 
+  it('no longer exposes the old /api/debug/sok route', async () => {
+    const res = await request(app).get('/api/debug/sok');
+    expect(res.status).toBe(404);
+  });
+
   it('rejects markets without a server-side scraper instead of reporting a fake start', async () => {
     for (const market of ['migros', 'unknown']) {
       const res = await request(app).post(`/api/scrape/${market}`).set('x-api-key', 'test-scraper-key');
