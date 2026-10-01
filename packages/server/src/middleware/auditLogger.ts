@@ -6,7 +6,8 @@ export const auditLogAction = (req: AuthRequest, action: string, status: 'succes
   const role = req.user?.role || 'None';
   const method = req.method;
   const endpoint = req.originalUrl || req.url;
-  const ip = (req.headers['x-forwarded-for'] as string) || req.ip || req.socket.remoteAddress || 'unknown';
+  // req.ip honours the TRUST_PROXY hop count; the raw X-Forwarded-For header is client-controlled.
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
   const userAgent = req.headers['user-agent'] || 'unknown';
   const timestamp = new Date().toISOString();
   

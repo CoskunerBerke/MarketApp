@@ -11,14 +11,19 @@ import { scrapeSpecificMarket } from './services/scraperService';
 import { protect, admin, scraperApiKeyOrAdmin } from './middleware/authMiddleware';
 import { validateBody, bulkProductSchema } from './middleware/validationMiddleware';
 import { auditLogAction } from './middleware/auditLogger';
+import { parseTrustProxy } from './utils/security';
 
 const app: Express = express();
 
 // Behind a reverse proxy (e.g. Render) set TRUST_PROXY to the number of proxy hops (usually 1),
 // otherwise every request appears to come from the proxy and all clients share one rate-limit bucket.
-const trustProxy = process.env.TRUST_PROXY;
-if (trustProxy) {
-  app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy === 'true' ? true : trustProxy);
+// Only a hop count is accepted, so clients cannot choose their IP with X-Forwarded-For.
+const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+if (trustProxy.warning) {
+  console.warn(`[CONFIG WARNING] ${trustProxy.warning}`);
+}
+if (trustProxy.hops > 0) {
+  app.set('trust proxy', trustProxy.hops);
 }
 
 // 1. Helmet for Security Headers

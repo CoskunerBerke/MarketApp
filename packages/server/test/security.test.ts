@@ -5,6 +5,7 @@ import {
   generateResetCode,
   getJwtSecret,
   hashResetCode,
+  parseTrustProxy,
   PLACEHOLDER_SECRETS,
   safeEqual,
 } from '../src/utils/security';
@@ -72,5 +73,31 @@ describe('findPlaceholderSecrets', () => {
 
   it('accepts any other value (no length rule) and ignores unset variables', () => {
     expect(findPlaceholderSecrets({ JWT_SECRET: 'x7', SCRAPER_API_KEY: 'change-me-2' }, secretNames)).toEqual([]);
+  });
+});
+
+describe('parseTrustProxy', () => {
+  it('accepts a non-negative hop count and treats an empty value as no proxy', () => {
+    expect(parseTrustProxy(undefined)).toEqual({ hops: 0 });
+    expect(parseTrustProxy('')).toEqual({ hops: 0 });
+    expect(parseTrustProxy('0')).toEqual({ hops: 0 });
+    expect(parseTrustProxy('1')).toEqual({ hops: 1 });
+    expect(parseTrustProxy(' 2 ')).toEqual({ hops: 2 });
+  });
+
+  it('reads "true" as one hop instead of trusting every hop, with a warning', () => {
+    for (const value of ['true', 'TRUE']) {
+      const result = parseTrustProxy(value);
+      expect(result.hops).toBe(1);
+      expect(result.warning).toMatch(/TRUST_PROXY=true/);
+    }
+  });
+
+  it('ignores proxy headers for anything else, with a warning', () => {
+    for (const value of ['false', 'yes', '-1', '1.5', 'loopback', '10.0.0.0/8']) {
+      const result = parseTrustProxy(value);
+      expect(result.hops).toBe(0);
+      expect(result.warning).toMatch(/not a hop count/);
+    }
   });
 });

@@ -53,5 +53,22 @@ export const generateResetCode = (): string => crypto.randomInt(0, 1_000_000).to
 export const hashResetCode = (userId: string, code: string): string =>
   crypto.createHmac('sha256', getJwtSecret()).update(`${userId}:${code}`).digest('hex');
 
+/**
+ * Reads TRUST_PROXY as the number of reverse-proxy hops in front of the API (1 on Render).
+ * Only a non-negative integer is accepted: trusting every hop would let clients pick their
+ * own IP with X-Forwarded-For and get around the rate limits. "true" (an older setting) is
+ * read as 1 hop and any other value as 0 (proxy headers ignored), both with a warning.
+ */
+export const parseTrustProxy = (value: string | undefined): { hops: number; warning?: string } => {
+  const raw = (value ?? '').trim();
+  const hint = 'Set TRUST_PROXY to the number of proxies in front of the API (1 on Render).';
+  if (raw === '') return { hops: 0 };
+  if (/^\d+$/.test(raw)) return { hops: Number(raw) };
+  if (raw.toLowerCase() === 'true') {
+    return { hops: 1, warning: `TRUST_PROXY=true would trust every X-Forwarded-For hop; using 1 hop instead. ${hint}` };
+  }
+  return { hops: 0, warning: `TRUST_PROXY="${raw}" is not a hop count; proxy headers are ignored. ${hint}` };
+};
+
 /** Escapes user input so it can be used literally inside a RegExp / $regex. */
 export const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
