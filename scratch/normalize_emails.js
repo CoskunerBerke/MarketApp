@@ -12,7 +12,6 @@ const User = mongoose.model('User', UserSchema);
 
 async function normalizeEmails() {
   try {
-    console.log('Connecting to:', process.env.MONGODB_URI);
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB connected.');
 
