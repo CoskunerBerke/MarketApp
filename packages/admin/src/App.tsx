@@ -6,6 +6,13 @@ import './index.css';
 
 type MarketName = 'BİM' | 'ŞOK' | 'Migros';
 
+// Markets the API can scrape on demand (POST /api/scrape/:market); keep in sync with serverScrapers in packages/server/src/app.ts.
+const serverScrapeLabels = { bim: 'BİM', sok: 'ŞOK' } as const;
+type ServerScrapeMarket = keyof typeof serverScrapeLabels;
+
+// Migros (and the scheduled run of all three markets) is updated by this GitHub Actions workflow.
+const SCRAPE_WORKFLOW_URL = 'https://github.com/CoskunerBerke/MarketApp/actions/workflows/scrape-all.yml';
+
 interface AdminProduct {
   _id: string;
   name: string;
@@ -110,15 +117,16 @@ const Dashboard = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const handleScrape = async (market: string) => {
+  const handleScrape = async (market: ServerScrapeMarket) => {
+    const label = serverScrapeLabels[market];
     setLoading(true);
     setMessage(null);
     try {
-      await api.post(`/scrape/${market.toLowerCase()}`);
-      setMessage({ text: `${market} tarama işlemi başlatıldı! Veriler birazdan güncellenecektir.`, type: 'success' });
+      await api.post(`/scrape/${market}`);
+      setMessage({ text: `${label} tarama işlemi başlatıldı! Veriler birazdan güncellenecektir.`, type: 'success' });
       setTimeout(fetchData, 8000);
     } catch (err) {
-      setMessage({ text: errorMessage(err, `${market} güncellenirken bir hata oluştu.`), type: 'error' });
+      setMessage({ text: errorMessage(err, `${label} güncellenirken bir hata oluştu.`), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -135,9 +143,17 @@ const Dashboard = () => {
           <button className="btn btn-primary" style={{ backgroundColor: '#EC2027', borderColor: '#EC2027' }} onClick={() => handleScrape('sok')}>
             <RefreshCw size={18} className={loading ? 'spinner' : ''} /> ŞOK Tarat
           </button>
-          <button className="btn btn-primary" style={{ backgroundColor: '#FF6600', borderColor: '#FF6600' }} onClick={() => handleScrape('migros')}>
-            <RefreshCw size={18} className={loading ? 'spinner' : ''} /> Migros Tarat
-          </button>
+          {/* Migros has no server-side scraper: it is refreshed by the scheduled workflow, which can also be run by hand. */}
+          <a
+            className="btn btn-outline"
+            style={{ textDecoration: 'none', fontSize: '13.333px' /* default <button> size, matches the buttons beside it */ }}
+            href={SCRAPE_WORKFLOW_URL}
+            target="_blank"
+            rel="noreferrer"
+            title="Migros verisi zamanlanmış GitHub Actions iş akışıyla güncellenir. Elle çalıştırmak için iş akışı sayfasında 'Run workflow' seçeneğini kullanın."
+          >
+            <ExternalLink size={18} /> Migros: GitHub Actions
+          </a>
         </div>
       </div>
 
