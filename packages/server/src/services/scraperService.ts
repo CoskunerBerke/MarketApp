@@ -3,7 +3,7 @@ import * as cheerio from 'cheerio';
 import Product from '../models/Product';
 import Market from '../models/Market';
 import Category from '../models/Category';
-import { parsePrice, parsePromotionPrice } from '../utils/price';
+import { parseBimPrice, parsePrice, parsePromotionPrice } from '../utils/price';
 
 const initMarketsAndCategories = async () => {
   const markets = [
@@ -123,21 +123,9 @@ export const scrapeSpecificMarket = async (marketName: string) => {
                 if ($container.length === 0) return null;
                 const wholeText = $container.find('.text.quantify').text().trim();
                 const decimalText = $container.find('.kusurArea .number').text().trim();
-                if (decimalText) {
-                  const w = wholeText.replace(/[^\d]/g, '');
-                  const d = decimalText.replace(/[^\d]/g, '');
-                  return parseFloat(`${w}.${d}`);
-                } else {
-                  const normalized = wholeText.replace(',', '.').replace(/[^\d.]/g, '');
-                  const parts = normalized.split('.');
-                  if (parts.length > 2) {
-                    const d = parts.pop();
-                    const w = parts.join('');
-                    return parseFloat(`${w}.${d}`);
-                  }
-                  const val = parseFloat(normalized);
-                  return isNaN(val) ? null : val;
-                }
+                // Shared parser: "1.299" without decimals is 1299, not 1.299.
+                const val = parseBimPrice(wholeText, decimalText);
+                return isNaN(val) ? null : val;
               };
 
               const price = getBimPrice('.gButton.triangle');
